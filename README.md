@@ -18,6 +18,10 @@ There is no standalone build. Consumers compile the `.cpp` files as part of thei
 | `mmu/schema.h/.cpp`       | Schema offset resolver, `DECLARE_SCHEMA_CLASS`, `SCHEMA_FIELD` |
 | `mmu/log.h/.cpp`          | Engine logging channel + `MMU_LOG_*` macros + file mirroring   |
 | `mmu/print.h/.cpp`        | Chat/console send primitives + `mmu::ChatPrinter`              |
+| `mmu/chat_command.h`      | Say-quote strip + prefix/command/arg parser                    |
+| `mmu/gamedata.h/.cpp`     | `mmu::GameData`, per-platform KV1 offsets loader               |
+| `mmu/sigscan.h/.cpp`      | `sig::` module range + unique signature scan + RIP resolve     |
+| `mmu/workshop.h/.cpp`     | `mmu::EnsureWorkshopMapReady`, stale workshop ACF pruning      |
 | `mmu/entity/*.h`          | Entity wrappers: CBaseEntity, controller, pawn, button masks   |
 
 ## Usage
@@ -63,6 +67,7 @@ Include as:
 - Logging: call `mmu::log::Init(setup)` from plugin Load (channel name, addon dir, file mirroring, retention)
   and `mmu::log::Shutdown()` from Unload so the engine doesn't keep a listener into an unloaded DLL
   Log with `MMU_LOG_INFO/DEBUG/WARN/ERROR`.
+  `MMU_LOG_ERROR` is labeled ERROR but sent at LS_WARNING severity, real LS_ERROR makes the engine exit the server.
   `MMU_LOG_DEBUG` lines show with the `-debug` launch option or `Setup::debug`.
   File mirror writes to `addons/<addonName>/logs/<addonName>_YYYY-MM-DD.log`.
 - `mmu/print.cpp` references `g_pEngine`, `g_pGameEventSystem` (plugin-defined) and
