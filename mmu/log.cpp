@@ -213,6 +213,12 @@ namespace mmu
 			}
 		}
 
+		void SetRetentionDays(int days)
+		{
+			g_setup.retentionDays = days;
+			PurgeOldLogs();
+		}
+
 		bool Ready()
 		{
 			return g_channel != INVALID_LOGGING_CHANNEL_ID;

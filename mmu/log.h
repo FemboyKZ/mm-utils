@@ -35,6 +35,10 @@ namespace mmu
 		// Runtime toggle for file mirroring.
 		void SetToFile(bool enable);
 
+		// Update the retention window and purge old log files now.
+		// Lets plugins apply a config value parsed after Init.
+		void SetRetentionDays(int days);
+
 		// True once Init has registered the channel.
 		bool Ready();
 
