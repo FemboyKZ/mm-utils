@@ -83,12 +83,14 @@ namespace mmu
 		} \
 	} while (0)
 
+// Labeled ERROR but sent at LS_WARNING severity.
+// LS_ERROR makes the engine's default spew handler exit the server.
 #define MMU_LOG_ERROR(fmt, ...) \
 	do \
 	{ \
 		if (mmu::log::Ready()) \
 		{ \
-			LoggingSystem_Log(mmu::log::Channel(), LS_ERROR, "[%s] [ERROR] " fmt, mmu::log::Tag(), ##__VA_ARGS__); \
+			LoggingSystem_Log(mmu::log::Channel(), LS_WARNING, "[%s] [ERROR] " fmt, mmu::log::Tag(), ##__VA_ARGS__); \
 		} \
 		else \
 		{ \
