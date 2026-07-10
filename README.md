@@ -14,9 +14,10 @@ There is no standalone build. Consumers compile the `.cpp` files as part of thei
 | `mmu/str_utils.h`         | `str::ToLower`, `str::ToLowerInPlace`                          |
 | `mmu/chat_colors.h/.cpp`  | `CHAT_COLOR_*` macros, `mmu::ResolveColorTags`                 |
 | `mmu/translations.h/.cpp` | `mmu::Translations`, SourceMod-style phrase tables             |
-| `mmu/recipient_filter.h`  | `CSingleRecipientFilter` (single-slot reliable filter)         |
+| `mmu/recipient_filter.h`  | `CSingleRecipientFilter`, `CMultiRecipientFilter`              |
 | `mmu/schema.h/.cpp`       | Schema offset resolver, `DECLARE_SCHEMA_CLASS`, `SCHEMA_FIELD` |
-| `mmu/log.h/.cpp`          | `mmu::g_logTag` used in console log lines                      |
+| `mmu/log.h/.cpp`          | Engine logging channel + `MMU_LOG_*` macros + file mirroring   |
+| `mmu/print.h/.cpp`        | Chat/console send primitives + `mmu::ChatPrinter`              |
 | `mmu/entity/*.h`          | Entity wrappers: CBaseEntity, controller, pawn, button masks   |
 
 ## Usage
@@ -57,6 +58,12 @@ Include as:
   and links against the SDK's interfaces lib. It also references the plugin's `g_SMAPI`.
 - The entity headers reference `extern CGameEntitySystem *g_pEntitySystem;`.
   The plugin defines and populates that global.
-- `mmu::Translations::Load(baseDir, addonName)` reads
-  `<baseDir>/addons/<addonName>/translations/config.txt` and `*.phrases.txt`.
+- `mmu::Translations::Load(baseDir, addonName)` reads `<baseDir>/addons/<addonName>/translations/config.txt` and `*.phrases.txt`.
   Call `SetResolveColorTags(false)` before `Load` for non-chat text (HTML menus).
+- Logging: call `mmu::log::Init(setup)` from plugin Load (channel name, addon dir, file mirroring, retention)
+  and `mmu::log::Shutdown()` from Unload so the engine doesn't keep a listener into an unloaded DLL
+  Log with `MMU_LOG_INFO/DEBUG/WARN/ERROR`.
+  `MMU_LOG_DEBUG` lines show with the `-debug` launch option or `Setup::debug`.
+  File mirror writes to `addons/<addonName>/logs/<addonName>_YYYY-MM-DD.log`.
+- `mmu/print.cpp` references `g_pEngine`, `g_pGameEventSystem` (plugin-defined) and
+  `g_pNetworkMessages`, `g_pNetworkServerService` (interfaces.lib).

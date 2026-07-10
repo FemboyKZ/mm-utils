@@ -1,12 +1,9 @@
 #include "mmu/schema.h"
 #include "mmu/log.h"
 
-#include <ISmmPlugin.h>
 #include <interfaces/interfaces.h>
 
 #include <map>
-
-extern ISmmAPI *g_SMAPI;
 
 // Per class cache: fieldNameHash -> offset
 static std::map<uint32_t, std::map<uint32_t, int16_t>> g_schemaCache;
@@ -24,14 +21,14 @@ static bool InitSchemaFieldsForClass(const char *className, uint32_t classKey)
 
 	if (!pScope)
 	{
-		META_CONPRINTF("[%s] Schema: Could not find server type scope\n", mmu::g_logTag);
+		MMU_LOG_WARN("Schema: Could not find server type scope\n");
 		return false;
 	}
 
 	SchemaClassInfoData_t *pClassInfo = pScope->FindDeclaredClass(className).Get();
 	if (!pClassInfo)
 	{
-		META_CONPRINTF("[%s] Schema: Could not find class '%s'\n", mmu::g_logTag, className);
+		MMU_LOG_WARN("Schema: Could not find class '%s'\n", className);
 		return false;
 	}
 
@@ -66,6 +63,6 @@ int16_t schema::GetOffset(const char *className, uint32_t classKey, const char *
 		}
 	}
 
-	META_CONPRINTF("[%s] Schema: Could not find offset for %s::%s\n", mmu::g_logTag, className, fieldName);
+	MMU_LOG_WARN("Schema: Could not find offset for %s::%s\n", className, fieldName);
 	return 0;
 }
