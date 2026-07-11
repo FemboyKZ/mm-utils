@@ -5,7 +5,7 @@
 #include <mysql_mm.h>
 #include <sqlite_mm.h>
 
-#include <ISmmAPI.h>
+#include <ISmmPlugin.h>
 
 #include <cstdarg>
 #include <cstdio>

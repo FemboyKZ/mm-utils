@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <string>
+#include <utility>
 
 // Forward declarations from sql_mm.
 class ISQLInterface;
