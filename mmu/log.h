@@ -1,6 +1,8 @@
 #ifndef _INCLUDE_MMU_LOG_H_
 #define _INCLUDE_MMU_LOG_H_
 
+// dbg.h supplies the Msg/Warning fallbacks the macros use before Init.
+#include <tier0/dbg.h>
 #include <tier0/logging.h>
 
 namespace mmu
