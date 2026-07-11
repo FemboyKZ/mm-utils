@@ -20,6 +20,23 @@ namespace str
 	{
 		std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 	}
+
+	// Strip a trailing :port suffix from an address ("1.2.3.4:27015" -> "1.2.3.4").
+	// Splits on the last colon, so plain IPv4 and host names are handled. Not IPv6 aware.
+	inline std::string StripPort(const char *addr)
+	{
+		if (!addr || !addr[0])
+		{
+			return {};
+		}
+		std::string s(addr);
+		auto colon = s.rfind(':');
+		if (colon != std::string::npos)
+		{
+			return s.substr(0, colon);
+		}
+		return s;
+	}
 } // namespace str
 
 #endif // _INCLUDE_MMU_STR_UTILS_H_
