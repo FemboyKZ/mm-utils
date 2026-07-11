@@ -12,6 +12,8 @@ There is no standalone build. Consumers compile the `.cpp` files as part of thei
 | ------------------------- | -------------------------------------------------------------- |
 | `mmu/kv_parser.h`         | Minimal Valve KeyValues1 tokenizer/parser (`kv::LoadFile`)     |
 | `mmu/str_utils.h`         | `str::ToLower`, `str::ToLowerInPlace`                          |
+| `mmu/plugin_globals.h`    | Shared engine + Metamod interface global declarations          |
+| `mmu/sql.h/.cpp`          | `mmu::sql::Connection`, sql_mm connect/query/escape helpers    |
 | `mmu/chat_colors.h/.cpp`  | `CHAT_COLOR_*` macros, `mmu::ResolveColorTags`                 |
 | `mmu/translations.h/.cpp` | `mmu::Translations`, SourceMod-style phrase tables             |
 | `mmu/recipient_filter.h`  | `CSingleRecipientFilter`, `CMultiRecipientFilter`              |
@@ -47,6 +49,7 @@ AMBuilder, in `binary.sources`:
 "vendor/mm-utils/mmu/chat_colors.cpp",
 "vendor/mm-utils/mmu/log.cpp",
 "vendor/mm-utils/mmu/schema.cpp",
+"vendor/mm-utils/mmu/sql.cpp",
 "vendor/mm-utils/mmu/translations.cpp",
 ```
 
@@ -75,6 +78,11 @@ Include as:
   File mirror writes to `addons/<addonName>/logs/<addonName>_YYYY-MM-DD.log`.
 - `mmu/print.cpp` references `g_pEngine`, `g_pGameEventSystem` (plugin-defined) and
   `g_pNetworkMessages`, `g_pNetworkServerService` (interfaces.lib).
+- `mmu/plugin_globals.h` only declares the shared engine/Metamod globals.
+  The plugin still defines each one it uses.
+- `mmu/sql.cpp` needs `vendor/sql_mm/src/public` on the include path and references the plugin's `g_SMAPI`.
+  `Connection::Init(type)` acquires `ISQLInterface` via `MetaFactory(SQLMM_INTERFACE)`, call it in `AllPluginsLoaded` or later.
+  Set a schema hook with `SetSchemaHook` before `Connect`, it runs on the main thread after the standard pragmas and before the connect callback.
 - Workshop: call `mmu::gamesystem::Resolve(g_pServerGameDLL, sig, sigLen)`
   at plugin Load with the plugin's `IGameSystem_InitAllSystems_pFirst` signature.
   `mmu::EnsureWorkshopMapReady` then consults the engine's `CDedicatedServerWorkshopManager` registry
