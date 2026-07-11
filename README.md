@@ -21,7 +21,8 @@ There is no standalone build. Consumers compile the `.cpp` files as part of thei
 | `mmu/chat_command.h`      | Say-quote strip + prefix/command/arg parser                    |
 | `mmu/gamedata.h/.cpp`     | `mmu::GameData`, per-platform KV1 offsets loader               |
 | `mmu/sigscan.h/.cpp`      | `sig::` module range + unique signature scan + RIP resolve     |
-| `mmu/workshop.h/.cpp`     | `mmu::EnsureWorkshopMapReady`, stale workshop ACF pruning      |
+| `mmu/gamesystem.h/.cpp`   | Engine game system factory list resolve + `FindByName`         |
+| `mmu/workshop.h/.cpp`     | Engine workshop registry checks + stale-ACF pruning fallback   |
 | `mmu/entity/*.h`          | Entity wrappers: CBaseEntity, controller, pawn, button masks   |
 
 ## Usage
@@ -72,3 +73,9 @@ Include as:
   File mirror writes to `addons/<addonName>/logs/<addonName>_YYYY-MM-DD.log`.
 - `mmu/print.cpp` references `g_pEngine`, `g_pGameEventSystem` (plugin-defined) and
   `g_pNetworkMessages`, `g_pNetworkServerService` (interfaces.lib).
+- Workshop: call `mmu::gamesystem::Resolve(g_pServerGameDLL, sig, sigLen)`
+  at plugin Load with the plugin's `IGameSystem_InitAllSystems_pFirst` signature.
+  `mmu::EnsureWorkshopMapReady` then consults the engine's `CDedicatedServerWorkshopManager` registry
+  first and only falls back to the .vpk folder scan + ACF prune when the map isn't listed.
+  `mmu::workshop::IsMapInstalled(fileId)` / `InstalledMapIds()` expose the registry directly.
+  The manager struct layout is offset-pinned with static asserts and can drift on CS2 updates.

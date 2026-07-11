@@ -1,11 +1,14 @@
 #include "mmu/workshop.h"
+#include "mmu/gamesystem.h"
 #include "mmu/log.h"
 
 #include <filesystem.h>
 #include <interfaces/interfaces.h>
 #include <KeyValues.h>
+#include <tier1/utlmap.h>
 
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <string>
 #include <system_error>
@@ -14,6 +17,29 @@ namespace fs = std::filesystem;
 
 namespace
 {
+	template<typename T>
+	using WorkshopTree = CUtlOrderedMap<uint64_t, T, int, bool (*)(const uint64_t &, const uint64_t &)>;
+
+	class CDedicatedServerWorkshopManager
+	{
+	public:
+		// vtable, game system name, UGC path resolver, SteamWorks callbacks
+		uint8_t pad0[0x70];                           // 0x00
+		WorkshopTree<void *> m_requestedMaps;         // 0x70
+		WorkshopTree<void *> m_mapLoadedWorkshopMaps; // 0x98
+		WorkshopTree<bool> m_mapStatus;               // 0xC0
+		uint64_t m_nRequestedSharedFileId;            // 0xE8
+		uint64_t m_nRequestedCollectionSharedFileId;  // 0xF0
+		bool m_bInitialized;                          // 0xF8
+	};
+
+#ifdef _WIN32
+	static_assert(sizeof(WorkshopTree<void *>) == 0x28, "CUtlOrderedMap layout drifted from the engine's");
+	static_assert(offsetof(CDedicatedServerWorkshopManager, m_mapLoadedWorkshopMaps) == 0x98, "workshop manager layout drifted");
+	static_assert(sizeof(CDedicatedServerWorkshopManager) == 0x100, "workshop manager layout drifted");
+#endif
+
+	CDedicatedServerWorkshopManager *g_pWorkshopMgr = nullptr;
 
 	std::string WorkshopRootAbs()
 	{
@@ -116,10 +142,82 @@ namespace
 
 namespace mmu
 {
+	namespace workshop
+	{
+
+		bool ResolveManager()
+		{
+			if (g_pWorkshopMgr)
+			{
+				return true;
+			}
+			if (!gamesystem::Ready())
+			{
+				return false;
+			}
+			g_pWorkshopMgr = static_cast<CDedicatedServerWorkshopManager *>(gamesystem::FindByName("DedicatedServerWorkshopManager"));
+			if (g_pWorkshopMgr)
+			{
+				MMU_LOG_INFO("Workshop: engine workshop manager resolved.\n");
+			}
+			return g_pWorkshopMgr != nullptr;
+		}
+
+		bool ManagerReady()
+		{
+			return g_pWorkshopMgr != nullptr;
+		}
+
+		bool IsMapInstalled(uint64_t fileId)
+		{
+			if (!ResolveManager())
+			{
+				return false;
+			}
+
+			// Manual index walk so the engine's comparator is never invoked.
+			const auto &maps = g_pWorkshopMgr->m_mapLoadedWorkshopMaps;
+			for (int i = 0; i < maps.MaxElement(); i++)
+			{
+				if (maps.IsValidIndex(i) && maps.Key(i) == fileId)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+		std::vector<uint64_t> InstalledMapIds()
+		{
+			std::vector<uint64_t> out;
+			if (!ResolveManager())
+			{
+				return out;
+			}
+
+			const auto &maps = g_pWorkshopMgr->m_mapLoadedWorkshopMaps;
+			for (int i = 0; i < maps.MaxElement(); i++)
+			{
+				if (maps.IsValidIndex(i))
+				{
+					out.push_back(maps.Key(i));
+				}
+			}
+			return out;
+		}
+
+	} // namespace workshop
 
 	bool EnsureWorkshopMapReady(const std::string &workshopId, CSteamGameServerAPIContext &steamAPI)
 	{
 		if (workshopId.empty())
+		{
+			return false;
+		}
+
+		// Engine registry is the authority: it lists the map only once its addon path resolved, so a listed map needs no ACF surgery.
+		uint64_t fileId = std::strtoull(workshopId.c_str(), nullptr, 10);
+		if (fileId != 0 && workshop::IsMapInstalled(fileId))
 		{
 			return false;
 		}
