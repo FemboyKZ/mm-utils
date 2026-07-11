@@ -8,7 +8,7 @@
 #include <string>
 
 class IRecipientFilter;
-struct CGlobalVars;
+class CGlobalVars;
 
 namespace mmu
 {
