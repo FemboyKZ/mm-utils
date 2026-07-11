@@ -19,6 +19,8 @@ There is no standalone build. Consumers compile the `.cpp` files as part of thei
 | `mmu/log.h/.cpp`          | Engine logging channel + `MMU_LOG_*` macros + file mirroring   |
 | `mmu/print.h/.cpp`        | Chat/console send primitives + `mmu::ChatPrinter`              |
 | `mmu/chat_command.h`      | Say-quote strip + prefix/command/arg parser                    |
+| `mmu/http_client.h/.cpp`  | Async HTTP(S) GET/POST worker + main-thread queue              |
+| `mmu/steam_utils.h`       | SteamID64 <-> STEAM_0:X:Y auth id conversion                   |
 | `mmu/gamedata.h/.cpp`     | `mmu::GameData`, per-platform KV1 offsets loader               |
 | `mmu/sigscan.h/.cpp`      | `sig::` module range + unique signature scan + RIP resolve     |
 | `mmu/gamesystem.h/.cpp`   | Engine game system factory list resolve + `FindByName`         |
