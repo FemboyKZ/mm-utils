@@ -1,7 +1,14 @@
 #ifndef _INCLUDE_MMU_RECIPIENT_FILTER_H_
 #define _INCLUDE_MMU_RECIPIENT_FILTER_H_
 
+#include <const.h>
 #include <irecipientfilter.h>
+
+// Both filters below drop out of range slots rather than trust the caller.
+static inline bool MMU_IsValidRecipientSlot(int slot)
+{
+	return slot >= 0 && slot < ABSOLUTE_PLAYER_LIMIT;
+}
 
 // Reliable recipient filter targeting exactly one player slot.
 class CSingleRecipientFilter : public IRecipientFilter
@@ -9,7 +16,10 @@ class CSingleRecipientFilter : public IRecipientFilter
 public:
 	explicit CSingleRecipientFilter(int slot)
 	{
-		m_recipients.Set(slot);
+		if (MMU_IsValidRecipientSlot(slot))
+		{
+			m_recipients.Set(slot);
+		}
 	}
 
 	~CSingleRecipientFilter() override {}
@@ -48,7 +58,10 @@ public:
 
 	void AddRecipient(int slot)
 	{
-		m_recipients.Set(slot);
+		if (MMU_IsValidRecipientSlot(slot))
+		{
+			m_recipients.Set(slot);
+		}
 	}
 
 	NetChannelBufType_t GetNetworkBufType() const override
