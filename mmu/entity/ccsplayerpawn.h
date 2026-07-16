@@ -65,8 +65,8 @@ public:
 
 	SCHEMA_FIELD(CCSPlayer_ItemServices *, m_pItemServices)
 
-	// Currently-held button bitmask (m_pButtonStates[0]), or 0 if unavailable.
-	uint64_t GetHeldButtons()
+	// The pawn's CInButtonState::m_pButtonStates array, or nullptr if unavailable.
+	const uint64_t *GetButtonStates()
 	{
 		// Cache only once all three resolve. A 0 (schema not ready yet) is not cached,
 		// so an early call can't poison the offsets for the life of the process.
@@ -82,17 +82,32 @@ public:
 
 		if (offMovement <= 0 || offButtons <= 0 || offStates <= 0)
 		{
-			return 0;
+			return nullptr;
 		}
 
 		void *services = *reinterpret_cast<void **>(reinterpret_cast<uintptr_t>(this) + offMovement);
 		if (!services)
 		{
-			return 0;
+			return nullptr;
 		}
 
 		uintptr_t buttonState = reinterpret_cast<uintptr_t>(services) + offButtons;
-		return *reinterpret_cast<uint64_t *>(buttonState + offStates);
+		return reinterpret_cast<const uint64_t *>(buttonState + offStates);
+	}
+
+	// Buttons still held at the end of the tick, or 0 if unavailable.
+	uint64_t GetHeldButtons()
+	{
+		const uint64_t *states = GetButtonStates();
+		return states ? states[0] : 0;
+	}
+
+	// Buttons that saw an up->down transition during the tick, or 0 if unavailable.
+	// This catches taps pressed and released inside a single tick, which never show up in the held mask.
+	uint64_t GetPressedButtons()
+	{
+		const uint64_t *states = GetButtonStates();
+		return states ? (states[2] | (states[0] & states[1])) : 0;
 	}
 };
 
