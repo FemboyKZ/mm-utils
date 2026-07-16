@@ -83,7 +83,7 @@ constexpr uint32_t FNV1a(const char *str)
 			return; \
 		} \
 		*reinterpret_cast<type *>(reinterpret_cast<uintptr_t>(this) + offset) = value; \
-		this->NetworkStateChanged(NetworkStateChangedData(offset)); \
+		this->NetworkStateChanged(NetworkStateChangedData(static_cast<uint32>(offset))); \
 	}
 
 #endif // _INCLUDE_MMU_SCHEMA_H_
