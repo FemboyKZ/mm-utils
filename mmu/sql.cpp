@@ -65,6 +65,27 @@ namespace mmu
 
 		void Connection::Connect(const ConnectParams &params, std::function<void(bool)> cb)
 		{
+			// A second Connect while one is in flight would orphan the pending connection.
+			if (m_connecting)
+			{
+				MMU_LOG_WARN("Connect called while a connect is already in flight. Ignoring.\n");
+				if (cb)
+				{
+					cb(false);
+				}
+				return;
+			}
+
+			// Destroy the old connection before m_params is reassigned.
+			// MySQLConnectionInfo holds raw pointers into the m_params strings,
+			// so it must not outlive them.
+			if (m_conn)
+			{
+				m_conn->Destroy();
+				m_conn = nullptr;
+				m_connected = false;
+			}
+
 			m_params = params;
 
 			if (m_type == DbType::SQLite)
@@ -124,9 +145,11 @@ namespace mmu
 				return;
 			}
 
+			m_connecting = true;
 			m_conn->Connect(
 				[this, cb](bool success)
 				{
+					m_connecting = false;
 					m_connected = success;
 					if (success)
 					{
@@ -165,6 +188,7 @@ namespace mmu
 				m_conn = nullptr;
 			}
 			m_connected = false;
+			m_connecting = false;
 			m_initialized = false;
 			m_mysql = nullptr;
 			m_sqlite = nullptr;

@@ -56,6 +56,8 @@ namespace mmu
 			// Async connect using `params`.
 			// On success runs the standard pragmas, invokes the schema hook, then fires cb(true).
 			// cb fires on the main thread.
+			// No-op firing cb(false) if a connect is already in flight.
+			// Any previous connection is destroyed first.
 			void Connect(const ConnectParams &params, std::function<void(bool)> cb);
 
 			// Destroy the connection and latch shutdown so in-flight callbacks bail.
@@ -64,6 +66,14 @@ namespace mmu
 			bool IsConnected() const
 			{
 				return m_connected;
+			}
+
+			// True while an async connect is in flight.
+			// Retry timers must check this. IsConnected() alone is false during the initial connect,
+			// so a timer gated only on that will fire mid-connect.
+			bool IsConnecting() const
+			{
+				return m_connecting;
 			}
 
 			bool IsInitialized() const
@@ -117,6 +127,7 @@ namespace mmu
 			ConnectParams m_params;
 			DbType m_type = DbType::SQLite;
 			bool m_connected = false;
+			bool m_connecting = false;
 			bool m_initialized = false;
 			bool m_shuttingDown = false;
 		};
