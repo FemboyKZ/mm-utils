@@ -28,6 +28,8 @@ static bool InitSchemaFieldsForClass(const char *className, uint32_t classKey)
 	SchemaClassInfoData_t *pClassInfo = pScope->FindDeclaredClass(className).Get();
 	if (!pClassInfo)
 	{
+		// Mark as probed with an empty entry so a missing class doesn't re-scan every call.
+		g_schemaCache[classKey];
 		MMU_LOG_WARN("Schema: Could not find class '%s'\n", className);
 		return false;
 	}

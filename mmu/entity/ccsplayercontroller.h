@@ -7,47 +7,23 @@
 #include <entity2/entitysystem.h>
 #include <entity2/entityidentity.h>
 #include <entityhandle.h>
+#include <ehandle.h>
 
-// Resolve a CEntityHandle to a CEntityInstance via the entity system.
-inline CEntityInstance *ResolveEntityHandle(const CEntityHandle &handle)
-{
-	extern CGameEntitySystem *g_pEntitySystem;
-	if (!handle.IsValid() || !g_pEntitySystem)
-	{
-		return nullptr;
-	}
-
-	int entIndex = handle.GetEntryIndex();
-	int chunk = entIndex / MAX_ENTITIES_IN_LIST;
-	int offset = entIndex % MAX_ENTITIES_IN_LIST;
-
-	if (chunk < 0 || chunk >= MAX_ENTITY_LISTS)
-	{
-		return nullptr;
-	}
-
-	CEntityIdentity *pChunk = g_pEntitySystem->m_EntityList.m_pIdentityChunks[chunk];
-	if (!pChunk)
-	{
-		return nullptr;
-	}
-
-	CEntityIdentity *pIdent = &pChunk[offset];
-	if (!pIdent || !pIdent->m_pInstance)
-	{
-		return nullptr;
-	}
-
-	return pIdent->m_pInstance;
-}
-
-// CBasePlayerController : CBaseEntity (m_hPawn)
+// CBasePlayerController : CBaseEntity
 class CBasePlayerController : public CBaseEntity
 {
 public:
 	DECLARE_SCHEMA_CLASS(CBasePlayerController)
 
-	SCHEMA_FIELD(CEntityHandle, m_hPawn)
+	SCHEMA_FIELD(CHandle<CBasePlayerPawn>, m_hPawn)
+
+	// The pawn currently being controlled.
+	// May be the player's own pawn, an observer pawn while dead or spectating, or a bot pawn.
+	// Use GetPlayerPawn for the real one.
+	CBasePlayerPawn *GetPawn()
+	{
+		return m_hPawn().Get();
+	}
 };
 
 // CCSPlayerController : CBasePlayerController
@@ -58,27 +34,29 @@ public:
 
 	SCHEMA_FIELD(bool, m_bPawnIsAlive)
 	SCHEMA_FIELD(uint32_t, m_iPawnHealth)
-	SCHEMA_FIELD(CEntityHandle, m_hObserverPawn)
+	SCHEMA_FIELD(CHandle<CCSPlayerPawn>, m_hPlayerPawn)
+	SCHEMA_FIELD(CHandle<CBasePlayerPawn>, m_hObserverPawn)
 
-	CCSPlayerPawn *GetPawn()
+	// The player's own pawn, regardless of what they're currently controlling.
+	CCSPlayerPawn *GetPlayerPawn()
 	{
-		return reinterpret_cast<CCSPlayerPawn *>(ResolveEntityHandle(m_hPawn()));
+		return m_hPlayerPawn().Get();
 	}
 
 	// Pawn to read button input from: the engine repoints m_hPawn to the controlled pawn
 	// (player pawn when alive, observer pawn when dead/spectating), so prefer it.
 	// Fall back to the observer pawn handle if m_hPawn is momentarily unset.
-	// Returned as CBasePlayerPawn* since only GetHeldButtons (a base method) is needed.
 	CBasePlayerPawn *GetInputPawn()
 	{
-		if (CEntityInstance *current = ResolveEntityHandle(m_hPawn()))
+		if (CBasePlayerPawn *current = m_hPawn().Get())
 		{
-			return reinterpret_cast<CBasePlayerPawn *>(current);
+			return current;
 		}
-		return reinterpret_cast<CBasePlayerPawn *>(ResolveEntityHandle(m_hObserverPawn()));
+		return m_hObserverPawn().Get();
 	}
 
 	// Get controller from player slot (slot 0 -> entity index 1).
+	// Returns null when the slot holds no live entity.
 	static CCSPlayerController *FromSlot(int slot)
 	{
 		extern CGameEntitySystem *g_pEntitySystem;
@@ -87,28 +65,7 @@ public:
 			return nullptr;
 		}
 
-		int entIndex = slot + 1;
-		int chunk = entIndex / MAX_ENTITIES_IN_LIST;
-		int offset = entIndex % MAX_ENTITIES_IN_LIST;
-
-		if (chunk < 0 || chunk >= MAX_ENTITY_LISTS)
-		{
-			return nullptr;
-		}
-
-		CEntityIdentity *pChunk = g_pEntitySystem->m_EntityList.m_pIdentityChunks[chunk];
-		if (!pChunk)
-		{
-			return nullptr;
-		}
-
-		CEntityIdentity *pIdent = &pChunk[offset];
-		if (!pIdent || !pIdent->m_pInstance)
-		{
-			return nullptr;
-		}
-
-		return reinterpret_cast<CCSPlayerController *>(pIdent->m_pInstance);
+		return static_cast<CCSPlayerController *>(g_pEntitySystem->GetEntityInstance(CEntityIndex(slot + 1)));
 	}
 };
 

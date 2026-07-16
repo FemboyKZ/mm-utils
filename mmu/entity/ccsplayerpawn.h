@@ -14,10 +14,10 @@ class CPlayerPawnComponent
 	virtual void unk_00() = 0;
 	virtual void unk_01() = 0;
 	virtual void unk_02() = 0;
-	virtual ~CPlayerPawnComponent() = 0;
+	virtual void unk_03() = 0;
 	virtual void unk_04() = 0;
 	virtual void unk_05() = 0;
-	virtual void unk_06() = 0;
+	virtual ~CPlayerPawnComponent() = 0;
 	virtual void unk_07() = 0;
 	virtual void unk_08() = 0;
 	virtual void unk_09() = 0;
@@ -31,6 +31,9 @@ class CPlayerPawnComponent
 	virtual void unk_17() = 0;
 	virtual void unk_18() = 0;
 	virtual void unk_19() = 0;
+	virtual void unk_20() = 0;
+	virtual void unk_21() = 0;
+	virtual void unk_22() = 0;
 };
 
 class CPlayer_ItemServices : public CPlayerPawnComponent
