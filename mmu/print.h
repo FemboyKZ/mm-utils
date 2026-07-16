@@ -20,6 +20,13 @@ namespace mmu
 	// Send a HUD_PRINTTALK user message to a recipient filter. `text` is sent as-is.
 	void SendChatToFilter(IRecipientFilter *filter, const char *text);
 
+	// Send `text` as a SayText2 chat line, attributed to entity `entIndex`.
+	//
+	// Pass 0 for `entIndex` unless the line has to be attributed to a player entity.
+	// A real player index makes the client resolve CHAT_COLOR_PURPLE to that player's team color instead of purple,
+	// so every \x03 in `text` changes meaning and follows the player across team switches.
+	void SendSayText2ToFilter(IRecipientFilter *filter, int entIndex, const char *text);
+
 	// Send `text` as-is to one player's chat.
 	void SendChatToSlot(int slot, const char *text);
 

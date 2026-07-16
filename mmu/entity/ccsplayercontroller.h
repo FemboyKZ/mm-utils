@@ -8,6 +8,7 @@
 #include <entity2/entityidentity.h>
 #include <entityhandle.h>
 #include <ehandle.h>
+#include <tier1/utlsymbollarge.h>
 
 // CBasePlayerController : CBaseEntity
 class CBasePlayerController : public CBaseEntity
@@ -36,6 +37,24 @@ public:
 	SCHEMA_FIELD(uint32_t, m_iPawnHealth)
 	SCHEMA_FIELD(CHandle<CCSPlayerPawn>, m_hPlayerPawn)
 	SCHEMA_FIELD(CHandle<CBasePlayerPawn>, m_hObserverPawn)
+
+	// Scoreboard clan tag. Prefer SetClan over Setm_szClan, see the lifetime note there.
+	SCHEMA_FIELD_NETWORKED(CUtlSymbolLarge, m_szClan)
+
+	// Set the scoreboard clan tag.
+	//
+	// CUtlSymbolLarge stores the bare pointer it is handed, it does not copy the string.
+	// The caller therefore owns `clan` and must keep it alive for as long as the tag is displayed,
+	// so a std::string temporary or a local buffer will dangle.
+	// Hold the backing storage somewhere with the player's lifetime.
+	void SetClan(const char *clan)
+	{
+		if (!clan)
+		{
+			return;
+		}
+		Setm_szClan(CUtlSymbolLarge(clan));
+	}
 
 	// The player's own pawn, regardless of what they're currently controlling.
 	CCSPlayerPawn *GetPlayerPawn()

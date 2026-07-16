@@ -47,6 +47,17 @@ namespace mmu
 		return s_pTextMsg;
 	}
 
+	// Cache the SayText2 network message pointer (lazy init)
+	static INetworkMessageInternal *GetSayText2Message()
+	{
+		static INetworkMessageInternal *s_pSayText2 = nullptr;
+		if (!s_pSayText2 && g_pNetworkMessages)
+		{
+			s_pSayText2 = g_pNetworkMessages->FindNetworkMessagePartial("SayText2");
+		}
+		return s_pSayText2;
+	}
+
 	void SendChatToFilter(IRecipientFilter *filter, const char *text)
 	{
 		INetworkMessageInternal *pNetMsg = GetTextMsgMessage();
@@ -64,6 +75,31 @@ namespace mmu
 		auto *pTextMsg = pData->ToPB<CUserMessageTextMsg>();
 		pTextMsg->set_dest(HUD_PRINTTALK);
 		pTextMsg->add_param(text);
+
+		g_pGameEventSystem->PostEventAbstract(-1, false, filter, pNetMsg, pData, 0);
+		g_pNetworkMessages->DeallocateNetMessageAbstract(pNetMsg, pData);
+	}
+
+	void SendSayText2ToFilter(IRecipientFilter *filter, int entIndex, const char *text)
+	{
+		INetworkMessageInternal *pNetMsg = GetSayText2Message();
+		if (!pNetMsg || !g_pGameEventSystem)
+		{
+			return;
+		}
+
+		CNetMessage *pData = pNetMsg->AllocateMessage();
+		if (!pData)
+		{
+			return;
+		}
+
+		auto *pSayText2 = pData->ToPB<CUserMessageSayText2>();
+		pSayText2->set_entityindex(entIndex);
+		pSayText2->set_messagename(text);
+		// param1/param2 stay empty: the whole line is already composed in messagename.
+		// Some plugins tell their own lines apart from the game's by that emptiness.
+		pSayText2->set_chat(false);
 
 		g_pGameEventSystem->PostEventAbstract(-1, false, filter, pNetMsg, pData, 0);
 		g_pNetworkMessages->DeallocateNetMessageAbstract(pNetMsg, pData);
