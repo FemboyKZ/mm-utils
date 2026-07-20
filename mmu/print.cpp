@@ -58,6 +58,19 @@ namespace mmu
 		return s_pSayText2;
 	}
 
+	// Copy `src`'s recipients into `out`, dropping any slot the engine has no live net channel for.
+	static void KeepLiveRecipients(IRecipientFilter *src, CMultiRecipientFilter &out)
+	{
+		const CPlayerBitVec &bits = src->GetRecipients();
+		for (int slot = 0; slot < bits.GetNumBits(); slot++)
+		{
+			if (bits.IsBitSet(slot) && g_pEngine && g_pEngine->GetPlayerNetInfo(CPlayerSlot(slot)))
+			{
+				out.AddRecipient(slot);
+			}
+		}
+	}
+
 	void SendChatToFilter(IRecipientFilter *filter, const char *text)
 	{
 		INetworkMessageInternal *pNetMsg = GetTextMsgMessage();
@@ -65,6 +78,9 @@ namespace mmu
 		{
 			return;
 		}
+
+		CMultiRecipientFilter live;
+		KeepLiveRecipients(filter, live);
 
 		CNetMessage *pData = pNetMsg->AllocateMessage();
 		if (!pData)
@@ -76,7 +92,7 @@ namespace mmu
 		pTextMsg->set_dest(HUD_PRINTTALK);
 		pTextMsg->add_param(text);
 
-		g_pGameEventSystem->PostEventAbstract(-1, false, filter, pNetMsg, pData, 0);
+		g_pGameEventSystem->PostEventAbstract(-1, false, &live, pNetMsg, pData, 0);
 		g_pNetworkMessages->DeallocateNetMessageAbstract(pNetMsg, pData);
 	}
 
@@ -94,6 +110,9 @@ namespace mmu
 			return;
 		}
 
+		CMultiRecipientFilter live;
+		KeepLiveRecipients(filter, live);
+
 		auto *pSayText2 = pData->ToPB<CUserMessageSayText2>();
 		pSayText2->set_entityindex(entIndex);
 		pSayText2->set_messagename(text);
@@ -101,7 +120,7 @@ namespace mmu
 		// Some plugins tell their own lines apart from the game's by that emptiness.
 		pSayText2->set_chat(false);
 
-		g_pGameEventSystem->PostEventAbstract(-1, false, filter, pNetMsg, pData, 0);
+		g_pGameEventSystem->PostEventAbstract(-1, false, &live, pNetMsg, pData, 0);
 		g_pNetworkMessages->DeallocateNetMessageAbstract(pNetMsg, pData);
 	}
 
