@@ -18,7 +18,7 @@ namespace fs = std::filesystem;
 namespace
 {
 	template<typename T>
-	using WorkshopTree = CUtlOrderedMap<uint64_t, T, int, bool (*)(const uint64_t &, const uint64_t &)>;
+	using WorkshopTree = CUtlOrderedMap<uint64_t, T, bool (*)(const uint64_t &, const uint64_t &), int>;
 
 	class CDedicatedServerWorkshopManager
 	{
