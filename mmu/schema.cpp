@@ -11,6 +11,14 @@ static std::map<uint32_t, std::map<uint32_t, int16_t>> g_schemaCache;
 // Returns false when the schema system isn't ready yet.
 static bool InitSchemaFieldsForClass(const char *className, uint32_t classKey)
 {
+	// Null until the plugin acquires SCHEMASYSTEM_INTERFACE_VERSION in Load().
+	// Nothing is cached here, so a later call still resolves once it is set.
+	if (!g_pSchemaSystem)
+	{
+		MMU_LOG_WARN("Schema: schema system unavailable, is g_pSchemaSystem acquired in Load()?\n");
+		return false;
+	}
+
 	CSchemaSystemTypeScope *pScope = g_pSchemaSystem->FindTypeScopeForModule(
 #ifdef _WIN32
 		"server.dll"
