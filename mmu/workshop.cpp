@@ -235,7 +235,17 @@ namespace mmu
 			{
 				return false;
 			}
-			return steamAPI.SteamUGC()->GetItemDownloadInfo(fileId, &done, &total) && total > 0;
+
+			uint64 steamDone = 0;
+			uint64 steamTotal = 0;
+			if (!steamAPI.SteamUGC()->GetItemDownloadInfo(fileId, &steamDone, &steamTotal) || steamTotal == 0)
+			{
+				return false;
+			}
+
+			done = static_cast<uint64_t>(steamDone);
+			total = static_cast<uint64_t>(steamTotal);
+			return true;
 		}
 
 	} // namespace workshop
