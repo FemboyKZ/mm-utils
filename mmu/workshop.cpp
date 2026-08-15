@@ -206,6 +206,43 @@ namespace mmu
 			return out;
 		}
 
+		bool IsReady(uint64_t fileId, CSteamGameServerAPIContext &steamAPI)
+		{
+			if (fileId == 0)
+			{
+				return false;
+			}
+			if (IsMapInstalled(fileId))
+			{
+				return true;
+			}
+			if (steamAPI.SteamUGC() && (steamAPI.SteamUGC()->GetItemState(fileId) & k_EItemStateInstalled) != 0)
+			{
+				return true;
+			}
+			return WorkshopFolderHasVPK(std::to_string(fileId));
+		}
+
+		bool StartDownload(uint64_t fileId, CSteamGameServerAPIContext &steamAPI)
+		{
+			if (fileId == 0 || !steamAPI.SteamUGC())
+			{
+				return false;
+			}
+			return steamAPI.SteamUGC()->DownloadItem(fileId, true);
+		}
+
+		bool DownloadProgress(uint64_t fileId, CSteamGameServerAPIContext &steamAPI, uint64_t &done, uint64_t &total)
+		{
+			done = 0;
+			total = 0;
+			if (fileId == 0 || !steamAPI.SteamUGC())
+			{
+				return false;
+			}
+			return steamAPI.SteamUGC()->GetItemDownloadInfo(fileId, &done, &total) && total > 0;
+		}
+
 	} // namespace workshop
 
 	bool EnsureWorkshopMapReady(const std::string &workshopId, CSteamGameServerAPIContext &steamAPI)

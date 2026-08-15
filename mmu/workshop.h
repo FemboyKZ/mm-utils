@@ -22,6 +22,16 @@ namespace mmu
 
 		// All workshop file ids the engine currently lists as loaded.
 		std::vector<uint64_t> InstalledMapIds();
+
+		// True once the map can be loaded:
+		// the engine lists it, Steam reports it installed, or a .vpk is on disk.
+		bool IsReady(uint64_t fileId, CSteamGameServerAPIContext &steamAPI);
+
+		// Asks Steam to fetch the addon. Completion shows up through IsReady.
+		bool StartDownload(uint64_t fileId, CSteamGameServerAPIContext &steamAPI);
+
+		// Bytes of an in-flight download. False when Steam reports no transfer.
+		bool DownloadProgress(uint64_t fileId, CSteamGameServerAPIContext &steamAPI, uint64_t &done, uint64_t &total);
 	} // namespace workshop
 
 	// Ensure a workshop map can be downloaded cleanly at map change.
