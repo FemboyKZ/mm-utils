@@ -206,21 +206,16 @@ namespace mmu
 			return out;
 		}
 
-		bool IsReady(uint64_t fileId, CSteamGameServerAPIContext &steamAPI)
+		// Steam's k_EItemStateInstalled is deliberately not consulted.
+		// It reflects the ACF, which routinely outlives the files a cleaner plugin deleted,
+		// and believing it is what sends the engine to the "error" map.
+		bool IsReady(uint64_t fileId, CSteamGameServerAPIContext & /*steamAPI*/)
 		{
 			if (fileId == 0)
 			{
 				return false;
 			}
-			if (IsMapInstalled(fileId))
-			{
-				return true;
-			}
-			if (steamAPI.SteamUGC() && (steamAPI.SteamUGC()->GetItemState(fileId) & k_EItemStateInstalled) != 0)
-			{
-				return true;
-			}
-			return WorkshopFolderHasVPK(std::to_string(fileId));
+			return IsMapInstalled(fileId) || WorkshopFolderHasVPK(std::to_string(fileId));
 		}
 
 		bool StartDownload(uint64_t fileId, CSteamGameServerAPIContext &steamAPI)
