@@ -23,11 +23,15 @@ namespace mmu
 		// All workshop file ids the engine currently lists as loaded.
 		std::vector<uint64_t> InstalledMapIds();
 
-		// True once the map can be loaded:
-		// the engine lists it, Steam reports it installed, or a .vpk is on disk.
+		// True only when the addon's .vpk is actually on disk.
+		// Neither Steam's state nor the engine registry is consulted, since both outlive deleted files.
 		bool IsReady(uint64_t fileId, CSteamGameServerAPIContext &steamAPI);
 
-		// Asks Steam to fetch the addon. Completion shows up through IsReady.
+		// True once a download started by StartDownload has landed.
+		// Trusts Steam's state as well as disk, which IsReady deliberately does not.
+		bool DownloadSettled(uint64_t fileId, CSteamGameServerAPIContext &steamAPI);
+
+		// Asks Steam to fetch the addon. Completion shows up through DownloadSettled.
 		bool StartDownload(uint64_t fileId, CSteamGameServerAPIContext &steamAPI);
 
 		// Bytes of an in-flight download. False when Steam reports no transfer.
@@ -35,7 +39,6 @@ namespace mmu
 	} // namespace workshop
 
 	// Ensure a workshop map can be downloaded cleanly at map change.
-	// If the engine's registry already lists the map as loaded, nothing to do.
 	// Otherwise, if the addon has no .vpk on disk, prune its stale ACF entry
 	// (WorkshopItemsInstalled + WorkshopItemDetails in appworkshop_730.acf)
 	// so Steam re-downloads it, then ask SteamUGC to re-read the file.

@@ -43,13 +43,17 @@ namespace
 
 	std::string WorkshopRootAbs()
 	{
-		std::error_code ec;
-		fs::path abs = fs::absolute(fs::path("steamapps") / "workshop", ec);
-		if (ec)
+		static std::string cached;
+		if (!cached.empty())
 		{
-			return std::string("steamapps/workshop");
+			return cached;
 		}
-		return abs.string();
+
+		char abs[1024] = {};
+		V_MakeAbsolutePath(abs, sizeof(abs), "./steamapps/workshop");
+		cached = abs[0] ? abs : "steamapps/workshop";
+		MMU_LOG_INFO("Workshop: content root resolved to '%s'.\n", cached.c_str());
+		return cached;
 	}
 
 	// True if `steamapps/workshop/content/730/<id>/` exists AND contains at least one .vpk file.
@@ -206,16 +210,26 @@ namespace mmu
 			return out;
 		}
 
-		// Steam's k_EItemStateInstalled is deliberately not consulted.
-		// It reflects the ACF, which routinely outlives the files a cleaner plugin deleted,
-		// and believing it is what sends the engine to the "error" map.
+		// Files on disk, and nothing else.
+		// Steam's k_EItemStateInstalled reflects the ACF, which outlives files a cleaner deleted,
+		// and IsMapInstalled reads a struct layout we reconstructed by hand.
+		// A false positive here hands the engine an empty addon and drops it on the "error" map, so only real files count.
+		// Erring the other way just costs a DownloadItem that returns immediately.
 		bool IsReady(uint64_t fileId, CSteamGameServerAPIContext & /*steamAPI*/)
 		{
-			if (fileId == 0)
+			return fileId != 0 && WorkshopFolderHasVPK(std::to_string(fileId));
+		}
+
+		// Only meaningful once StartDownload has been called for this id:
+		// the ACF was pruned and Steam re-asked, so its answer is fresh rather than inherited.
+		// Lets a wait finish even where the folder scan cannot see the content root.
+		bool DownloadSettled(uint64_t fileId, CSteamGameServerAPIContext &steamAPI)
+		{
+			if (IsReady(fileId, steamAPI))
 			{
-				return false;
+				return true;
 			}
-			return IsMapInstalled(fileId) || WorkshopFolderHasVPK(std::to_string(fileId));
+			return steamAPI.SteamUGC() && (steamAPI.SteamUGC()->GetItemState(fileId) & k_EItemStateInstalled) != 0;
 		}
 
 		bool StartDownload(uint64_t fileId, CSteamGameServerAPIContext &steamAPI)
@@ -257,13 +271,7 @@ namespace mmu
 			return false;
 		}
 
-		// Engine registry is the authority: it lists the map only once its addon path resolved, so a listed map needs no ACF surgery.
-		uint64_t fileId = std::strtoull(workshopId.c_str(), nullptr, 10);
-		if (fileId != 0 && workshop::IsMapInstalled(fileId))
-		{
-			return false;
-		}
-
+		// Disk is the only authority here, for the reasons on workshop::IsReady.
 		if (WorkshopFolderHasVPK(workshopId))
 		{
 			return false; // already good
