@@ -15,7 +15,6 @@ extern ICvar *g_pICvar;
 extern ISmmAPI *g_SMAPI;
 extern ISmmPlugin *g_PLAPI;
 extern PluginId g_PLID;
-extern SourceHook::ISourceHook *g_SHPtr;
 
 // Highest client slot index. Player arrays are sized [MAXPLAYERS + 1].
 #define MAXPLAYERS 64
