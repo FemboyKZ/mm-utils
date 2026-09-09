@@ -21,6 +21,18 @@ namespace str
 		std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 	}
 
+	// Strip leading and trailing spaces, tabs, CR and LF from a copy of `s`.
+	inline std::string Trim(const std::string &s)
+	{
+		size_t start = s.find_first_not_of(" \t\r\n");
+		if (start == std::string::npos)
+		{
+			return "";
+		}
+		size_t end = s.find_last_not_of(" \t\r\n");
+		return s.substr(start, end - start + 1);
+	}
+
 	// Strip a trailing :port suffix from an address ("1.2.3.4:27015" -> "1.2.3.4").
 	// Splits on the last colon, so plain IPv4 and host names are handled. Not IPv6 aware.
 	inline std::string StripPort(const char *addr)
