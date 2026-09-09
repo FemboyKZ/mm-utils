@@ -1,4 +1,5 @@
 #include "mmu/gamesystem.h"
+#include "mmu/gamedata.h"
 #include "mmu/log.h"
 #include "mmu/sigscan.h"
 
@@ -26,7 +27,7 @@ namespace mmu
 	namespace gamesystem
 	{
 
-		bool Resolve(const void *serverModuleAnchor, const uint8_t *signature, size_t sigLen)
+		bool Resolve(const void *serverModuleAnchor)
 		{
 			if (g_ppFirst)
 			{
@@ -42,7 +43,7 @@ namespace mmu
 			}
 
 			bool multiple = false;
-			void *insn = sig::FindSignatureUnique(base, size, signature, sigLen, multiple);
+			void *insn = sig::FindSignatureUnique(base, size, gamedata::kGameSystemFactorySig, multiple);
 			if (!insn)
 			{
 				MMU_LOG_WARN("GameSystem: sm_pFirst signature not found.\n");

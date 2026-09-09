@@ -1,49 +1,46 @@
 #ifndef _INCLUDE_MMU_SIGSCAN_H_
 #define _INCLUDE_MMU_SIGSCAN_H_
 
+#include <khook.hpp>
+
 #include <cstddef>
 #include <cstdint>
 
 namespace sig
 {
-	// Wildcard byte used in signatures.
-	static constexpr uint8_t kWildcard = 0x2A;
-
 	// Locate the loaded server module's mapped memory range by walking out from a known pointer that lives inside it (e.g. g_pServerGameDLL).
 	// Returns false if the range can't be determined. Implemented per-platform in sigscan.cpp.
 	bool GetModuleRange(const void *knownAddress, void *&outBase, size_t &outSize);
 
-	// Scan [base, base+size] for `sig` (kWildcard matches any byte) and report whether a second match exists.
+	// Scan [base, base+size] for `signature` and report whether a second match exists.
+	// `signature` is an IDA byte string, single-spaced, "?" for a wildcard byte, e.g. "48 8B 1D ? ? ? ? 48 85 DB".
+	// Double spaces do not parse.
+	//
+	// Goes through KHook so bytes sitting under an active detour compare as their pre-hook originals.
+	// A sibling plugin hooking the same function would otherwise hide the pattern from us.
+	// Needs PLUGIN_SAVEVARS() to have run, that is what hands the plugin its KHook interface.
+	//
 	// A non-unique signature means we can't trust the first hit, so callers should refuse it rather than risk a bad pointer.
-	inline void *FindSignatureUnique(void *base, size_t size, const uint8_t *signature, size_t sigLen, bool &outMultiple)
+	inline void *FindSignatureUnique(void *base, size_t size, const char *signature, bool &outMultiple)
 	{
 		outMultiple = false;
-		if (!base || sigLen == 0 || size < sigLen)
+		if (!base || !signature || size == 0)
 		{
 			return nullptr;
 		}
 
-		const uint8_t *mem = static_cast<const uint8_t *>(base);
-		void *first = nullptr;
-		for (size_t i = 0; i + sigLen <= size; i++)
+		void *first = KHook::LookupSignature(base, size, signature);
+		if (!first)
 		{
-			size_t matches = 0;
-			while (matches < sigLen && (mem[i + matches] == signature[matches] || signature[matches] == kWildcard))
-			{
-				matches++;
-			}
-			if (matches == sigLen)
-			{
-				if (!first)
-				{
-					first = const_cast<uint8_t *>(mem + i);
-				}
-				else
-				{
-					outMultiple = true;
-					return first;
-				}
-			}
+			return nullptr;
+		}
+
+		// Resume one byte past the hit, so overlapping matches still count as ambiguous.
+		size_t consumed = static_cast<size_t>(reinterpret_cast<uintptr_t>(first) - reinterpret_cast<uintptr_t>(base)) + 1;
+		if (consumed < size)
+		{
+			void *next = reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(base) + consumed);
+			outMultiple = KHook::LookupSignature(next, size - consumed, signature) != nullptr;
 		}
 		return first;
 	}
