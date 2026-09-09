@@ -48,6 +48,14 @@ namespace sig
 		return first;
 	}
 
+	// Locate a named section of the module containing `knownAddress`, e.g. ".rdata" on Windows, ".rodata" on Linux.
+	bool GetModuleSection(const void *knownAddress, const char *name, void *&outBase, size_t &outSize);
+
+	// Resolve a class vtable by RTTI name, e.g. "CServerSideClient". `knownAddress` is any pointer inside the module that defines it.
+	// Returns the first virtual function slot, or null.
+	// Only finds primary vtables (base offset 0) of classes the compiler emitted RTTI for.
+	void *FindVirtualTable(const void *knownAddress, const char *className);
+
 	// Resolve a RIP-relative MOV/LEA whose displacement begins 3 bytes into the instruction (REX + opcode + ModRM), e.g. `48 8D 0D <disp32>`.
 	// Returns the address the instruction computes: nextInsn + signed disp32.
 	inline void *ResolveRipRelative(void *instruction)
