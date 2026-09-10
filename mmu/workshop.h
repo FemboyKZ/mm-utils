@@ -36,6 +36,96 @@ namespace mmu
 
 		// Bytes of an in-flight download. False when Steam reports no transfer.
 		bool DownloadProgress(uint64_t fileId, CSteamGameServerAPIContext &steamAPI, uint64_t &done, uint64_t &total);
+
+		// Wait-for-download state for a workshop map change. Messaging stays with the caller.
+		class PendingDownload
+		{
+		public:
+			enum class Status
+			{
+				Idle,
+				Waiting,
+				Announce, // still waiting, progress interval elapsed
+				Settled,  // downloaded, change map now
+				TimedOut,
+			};
+
+			// Returns false and arms nothing when timeoutSecs <= 0.
+			bool Begin(uint64_t fileId, float timeoutSecs, float now, float announceInterval = 10.0f)
+			{
+				if (timeoutSecs <= 0.0f)
+				{
+					return false;
+				}
+				m_active = true;
+				m_fileId = fileId;
+				m_deadline = now + timeoutSecs;
+				m_announceInterval = announceInterval;
+				m_nextAnnounce = now + announceInterval;
+				return true;
+			}
+
+			// Settled and TimedOut clear the state, so each is returned once.
+			Status Poll(float now, CSteamGameServerAPIContext &steamAPI)
+			{
+				if (!m_active)
+				{
+					return Status::Idle;
+				}
+				if (DownloadSettled(m_fileId, steamAPI))
+				{
+					Clear();
+					return Status::Settled;
+				}
+				if (now >= m_deadline)
+				{
+					Clear();
+					return Status::TimedOut;
+				}
+				if (now >= m_nextAnnounce)
+				{
+					m_nextAnnounce = now + m_announceInterval;
+					return Status::Announce;
+				}
+				return Status::Waiting;
+			}
+
+			// False when Steam reports no transfer.
+			bool Percent(CSteamGameServerAPIContext &steamAPI, int &outPercent) const
+			{
+				uint64_t done = 0, total = 0;
+				if (!m_active || !DownloadProgress(m_fileId, steamAPI, done, total) || total == 0)
+				{
+					return false;
+				}
+				outPercent = static_cast<int>((done * 100) / total);
+				return true;
+			}
+
+			bool Active() const
+			{
+				return m_active;
+			}
+
+			uint64_t FileId() const
+			{
+				return m_fileId;
+			}
+
+			void Clear()
+			{
+				m_active = false;
+				m_fileId = 0;
+			}
+
+		private:
+			bool m_active = false;
+			uint64_t m_fileId = 0;
+			float m_deadline = 0.0f;
+			float m_nextAnnounce = 0.0f;
+			float m_announceInterval = 10.0f;
+		};
+
 	} // namespace workshop
 
 	// Ensure a workshop map can be downloaded cleanly at map change.
