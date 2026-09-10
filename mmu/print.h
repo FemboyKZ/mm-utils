@@ -98,4 +98,29 @@ namespace mmu
 	};
 } // namespace mmu
 
+// Define a plugin's printf-style wrapper around a ChatPrinter.
+//
+// `invoke` is the full ChatPrinter call, written with the parameters `fmt` and `args` in scope (plus `slot` for the SLOT form).
+// Translated variants read as `fmt` too, since va_start needs the last named parameter and the name is not visible to callers.
+//
+//   MMU_PRINT_SLOT_FN(ADMIN_PrintToChat, Printer().ChatToSlotV(slot, fmt, args))
+//   MMU_PRINT_GLOBAL_FN(ADMIN_ChatToAll, Printer().ChatToAllV(fmt, args, false))
+#define MMU_PRINT_SLOT_FN(fn, invoke) \
+	void fn(int slot, const char *fmt, ...) \
+	{ \
+		va_list args; \
+		va_start(args, fmt); \
+		invoke; \
+		va_end(args); \
+	}
+
+#define MMU_PRINT_GLOBAL_FN(fn, invoke) \
+	void fn(const char *fmt, ...) \
+	{ \
+		va_list args; \
+		va_start(args, fmt); \
+		invoke; \
+		va_end(args); \
+	}
+
 #endif // _INCLUDE_MMU_PRINT_H_

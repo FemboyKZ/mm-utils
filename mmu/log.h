@@ -30,6 +30,16 @@ namespace mmu
 		// Register the logging channel and file listener. Call once from plugin Load.
 		void Init(const Setup &setup);
 
+		// Shorthand for the Setup every plugin fills in identically at load time.
+		inline void Init(const char *channelName, const char *addonName, bool toFile = true)
+		{
+			Setup s;
+			s.channelName = channelName;
+			s.addonName = addonName;
+			s.toFile = toFile;
+			Init(s);
+		}
+
 		// Unregister the listener and close the file.
 		// Call from plugin Unload, the engine keeps the listener pointer otherwise.
 		void Shutdown();
