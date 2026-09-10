@@ -126,7 +126,7 @@ inline uint32_t ParseAdminFlagName(const std::string &name)
 	// Single SourceMod letter a-z: a=(1<<0) ... y=(1<<24), z=root.
 	if (name.size() == 1)
 	{
-		char c = static_cast<char>(tolower(static_cast<unsigned char>(name[0])));
+		char c = static_cast<char>(std::tolower(static_cast<unsigned char>(name[0])));
 		if (c >= 'a' && c <= 'z')
 		{
 			return (c == 'z') ? CS2ADMIN_FLAG_ROOT : (1u << (c - 'a'));

@@ -63,6 +63,10 @@ namespace mmu
 			if (key == "type")
 			{
 				db.type = str::ToLower(value);
+				if (db.type != "sqlite" && db.type != "mysql")
+				{
+					MMU_LOG_WARN("Unknown database type '%s' (expected sqlite or mysql), using SQLite.\n", value.c_str());
+				}
 			}
 			else if (key == "prefix")
 			{

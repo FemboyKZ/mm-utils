@@ -32,11 +32,6 @@ namespace mmu
 			return m_bridge.Available();
 		}
 
-		ICS2Admin *Get() const
-		{
-			return m_bridge.Get();
-		}
-
 		// Group overrides, then admin_overrides.cfg, then defaultFlag. Console always passes.
 		bool CanUseCommand(int slot, const char *commandName, uint32_t defaultFlag) const
 		{

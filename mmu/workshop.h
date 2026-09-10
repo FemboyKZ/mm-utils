@@ -107,11 +107,6 @@ namespace mmu
 				return m_active;
 			}
 
-			uint64_t FileId() const
-			{
-				return m_fileId;
-			}
-
 			void Clear()
 			{
 				m_active = false;

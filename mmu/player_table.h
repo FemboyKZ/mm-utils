@@ -34,14 +34,6 @@ namespace mmu
 			}
 		}
 
-		void ClearAll()
-		{
-			for (int i = 0; i <= MAXPLAYERS; i++)
-			{
-				m_players[i] = T();
-			}
-		}
-
 		template<typename Pred>
 		int Count(Pred pred) const
 		{
@@ -54,25 +46,6 @@ namespace mmu
 				}
 			}
 			return n;
-		}
-
-		// fn(int slot, T &record) for every slot, occupied or not.
-		template<typename Fn>
-		void ForEach(Fn fn)
-		{
-			for (int i = 0; i <= MAXPLAYERS; i++)
-			{
-				fn(i, m_players[i]);
-			}
-		}
-
-		template<typename Fn>
-		void ForEach(Fn fn) const
-		{
-			for (int i = 0; i <= MAXPLAYERS; i++)
-			{
-				fn(i, m_players[i]);
-			}
 		}
 
 	private:
