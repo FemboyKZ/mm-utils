@@ -18,12 +18,28 @@ namespace sig
 	inline void *FindSignatureUnique(void *base, size_t size, const char *signature, bool &outMultiple)
 	{
 		outMultiple = false;
-		if (!base || !signature || size == 0)
+		if (!base || !signature || !*signature)
 		{
 			return nullptr;
 		}
 
-		void *first = KHook::LookupSignature(base, size, signature);
+		// KHook reads a whole signature from each start offset without checking `size`,
+		// so only offer starts where a full match still fits.
+		size_t sigLen = 1;
+		for (const char *p = signature; *p; p++)
+		{
+			if (*p == ' ')
+			{
+				sigLen++;
+			}
+		}
+		if (size < sigLen)
+		{
+			return nullptr;
+		}
+		size_t window = size - sigLen + 1;
+
+		void *first = KHook::LookupSignature(base, window, signature);
 		if (!first)
 		{
 			return nullptr;
@@ -31,10 +47,10 @@ namespace sig
 
 		// One past the hit, so overlapping matches count too.
 		size_t consumed = static_cast<size_t>(reinterpret_cast<uintptr_t>(first) - reinterpret_cast<uintptr_t>(base)) + 1;
-		if (consumed < size)
+		if (consumed < window)
 		{
 			void *next = reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(base) + consumed);
-			outMultiple = KHook::LookupSignature(next, size - consumed, signature) != nullptr;
+			outMultiple = KHook::LookupSignature(next, window - consumed, signature) != nullptr;
 		}
 		return first;
 	}
