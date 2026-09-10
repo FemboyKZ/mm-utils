@@ -70,12 +70,12 @@ enum class MenuButton : int
 	None,    // disable this action for the menu
 };
 
-// The names a server operator may write in a config for each MenuButton.
+// Config names for each MenuButton.
 struct MenuButtonName
 {
 	MenuButton button;
-	const char *canonical; // short name written back to configs and the prefs DB
-	const char *aliases;   // space-separated alternates also accepted on input
+	const char *canonical; // written back to configs and the prefs DB
+	const char *aliases;   // space-separated alternates
 };
 
 inline const MenuButtonName kMenuButtonNames[] = {
@@ -120,9 +120,7 @@ inline bool MenuButtonNameMatches(const char *list, const std::string &name)
 	}
 }
 
-// Resolve a config key name to a MenuButton. Expects an already-lowercased name.
-// "none"/"off" disables the action.
-// Anything unknown (including "default") returns MenuButton::Default.
+// Expects a lowercase name. "none"/"off" give None, anything unknown gives Default.
 inline MenuButton ParseMenuButton(const std::string &name)
 {
 	if (name == "none" || name == "off")
@@ -139,7 +137,7 @@ inline MenuButton ParseMenuButton(const std::string &name)
 	return MenuButton::Default;
 }
 
-// Canonical short name for a button, or nullptr for Default/None.
+// nullptr for Default and None.
 inline const char *GetMenuButtonName(MenuButton button)
 {
 	for (const MenuButtonName &k : kMenuButtonNames)

@@ -5,8 +5,7 @@ namespace mmu
 {
 	namespace gamesystem
 	{
-		// Resolve the engine's game system factory list head (CBaseGameSystemFactory::sm_pFirst),
-		// via mmu::gamedata::kGameSystemFactorySig. Returns false and logs on failure.
+		// Resolve CBaseGameSystemFactory::sm_pFirst. Returns false and logs on failure.
 		// `serverModuleAnchor` is any pointer inside the server module (e.g. g_pServerGameDLL).
 		bool Resolve(const void *serverModuleAnchor);
 

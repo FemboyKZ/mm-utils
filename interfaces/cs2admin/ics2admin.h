@@ -34,11 +34,8 @@ enum CS2AdminFlag : uint32_t
 	CS2ADMIN_FLAG_ROOT = (1 << 25),       // z - Root (all access)
 };
 
-// Resolve a permission name from a consumer plugin's config to a single flag bit.
-// Accepts a flag name ("changemap", "root", "reservation") or a single SourceMod letter a-z.
-//
-// Unknown input resolves to root, so a typo in a config locks the command down to root rather than opening it up.
-// Callers that want "no flag required" must not call this, they should pass 0 themselves (an empty permission string usually means open).
+// Config permission name to a flag bit. Takes flag names ("changemap") or a SourceMod letter a-z.
+// Unknown input maps to root so a typo fails closed. Pass 0 yourself for "no flag".
 inline uint32_t ParseAdminFlagName(const std::string &name)
 {
 	if (name == "reservation")

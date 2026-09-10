@@ -8,16 +8,8 @@
 
 namespace mmu
 {
-	// Resolve CGameEntitySystem through IGameResourceService.
-	// g_pGameResourceServiceServer comes from the SDK's interfaces.lib.
-	//
-	// The SDK declares a free `GameEntitySystem()` (entity2/entitysystem.h) and its own entity2 sources call it,
-	// so each plugin must still define that symbol itself. Define it as a forwarder to this:
-	//
-	//   CGameEntitySystem *GameEntitySystem() { return mmu::EntitySystem(); }
-	//
-	// Null until the server module hands out the resource service,
-	// and the pointer behind the offset is republished per level, so re-read it on map start rather than caching it across maps.
+	// The SDK's entity2 code calls a free GameEntitySystem() that each plugin must define.
+	// Forward it here:  CGameEntitySystem *GameEntitySystem() { return mmu::EntitySystem(); }
 	inline CGameEntitySystem *EntitySystem()
 	{
 		if (!g_pGameResourceServiceServer)

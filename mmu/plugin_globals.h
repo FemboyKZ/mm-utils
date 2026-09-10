@@ -19,14 +19,8 @@ extern PluginId g_PLID;
 // Highest client slot index. Player arrays are sized [MAXPLAYERS + 1].
 #define MAXPLAYERS 64
 
-// Resolve the engine interfaces every plugin needs, in one line.
-//
-// Expands to GET_V_IFACE_* calls, which read `ismm`, `error` and `maxlen` from the enclosing scope
-// and `return false` on the first interface that does not resolve.
-// Goes inside ISmmPlugin::Load, after PLUGIN_SAVEVARS()
-//
-// The globals are declared per plugin, not here:
-// some come from this header, some from the plugin's own common.h, and some from the SDK's interfaces.lib.
+// Interfaces every plugin needs. Use inside Load() after PLUGIN_SAVEVARS().
+// Like the GET_V_IFACE_* calls it expands to, returns false from Load on failure.
 #define MMU_GET_CORE_INTERFACES() \
 	GET_V_IFACE_CURRENT(GetEngineFactory, g_pEngine, IVEngineServer, INTERFACEVERSION_VENGINESERVER); \
 	GET_V_IFACE_CURRENT(GetEngineFactory, g_pICvar, ICvar, CVAR_INTERFACE_VERSION); \

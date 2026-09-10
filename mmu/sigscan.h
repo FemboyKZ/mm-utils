@@ -12,15 +12,9 @@ namespace sig
 	// Returns false if the range can't be determined. Implemented per-platform in sigscan.cpp.
 	bool GetModuleRange(const void *knownAddress, void *&outBase, size_t &outSize);
 
-	// Scan [base, base+size] for `signature` and report whether a second match exists.
-	// `signature` is an IDA byte string, single-spaced, "?" for a wildcard byte, e.g. "48 8B 1D ? ? ? ? 48 85 DB".
-	// Double spaces do not parse.
-	//
-	// Goes through KHook so bytes sitting under an active detour compare as their pre-hook originals.
-	// A sibling plugin hooking the same function would otherwise hide the pattern from us.
-	// Needs PLUGIN_SAVEVARS() to have run, that is what hands the plugin its KHook interface.
-	//
-	// A non-unique signature means we can't trust the first hit, so callers should refuse it rather than risk a bad pointer.
+	// Find `signature` in [base, base+size], setting outMultiple on a second match. Callers should refuse those.
+	// IDA format, single-spaced, "?" wildcard, e.g. "48 8B 1D ? ? ? ?".
+	// Uses KHook so bytes under another plugin's detour compare as originals. Needs PLUGIN_SAVEVARS().
 	inline void *FindSignatureUnique(void *base, size_t size, const char *signature, bool &outMultiple)
 	{
 		outMultiple = false;
@@ -35,7 +29,7 @@ namespace sig
 			return nullptr;
 		}
 
-		// Resume one byte past the hit, so overlapping matches still count as ambiguous.
+		// One past the hit, so overlapping matches count too.
 		size_t consumed = static_cast<size_t>(reinterpret_cast<uintptr_t>(first) - reinterpret_cast<uintptr_t>(base)) + 1;
 		if (consumed < size)
 		{

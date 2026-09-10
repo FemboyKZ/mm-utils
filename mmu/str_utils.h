@@ -21,7 +21,7 @@ namespace str
 		std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 	}
 
-	// Strip leading and trailing spaces, tabs, CR and LF from a copy of `s`.
+	// Trim space, tab, CR and LF from both ends.
 	inline std::string Trim(const std::string &s)
 	{
 		size_t start = s.find_first_not_of(" \t\r\n");

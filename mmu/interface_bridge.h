@@ -5,19 +5,16 @@
 
 namespace mmu
 {
-	// What a Refresh() did to the cached pointer, so the caller can log its own wording and only on an actual transition.
+	// Refresh() result, so callers log only on a transition.
 	enum class BridgeChange
 	{
-		Unchanged, // still there, or still missing
-		Loaded,    // was missing, resolved now
-		Unloaded,  // was there, gone now
+		Unchanged, // still present, or still absent
+		Loaded,
+		Unloaded,
 	};
 
-	// Cached pointer to another Metamod plugin's exported interface.
-	//
-	// Refresh() must run from IMetamodListener::OnPluginLoad and OnPluginUnload:
-	// the pointer belongs to the other plugin's code, so an unload leaves it dangling.
-	// It re-resolves unconditionally rather than trusting the cached value, since a plugin can be reloaded in place.
+	// Cached pointer to another plugin's exported interface.
+	// Call Refresh() from OnPluginLoad and OnPluginUnload, an unload leaves the pointer dangling.
 	template<typename T>
 	class InterfaceBridge
 	{
@@ -31,7 +28,6 @@ namespace mmu
 
 			if (g_SMAPI)
 			{
-				// MetaFactory searches every loaded plugin's factory by interface name.
 				m_iface = static_cast<T *>(g_SMAPI->MetaFactory(m_name, nullptr, nullptr));
 			}
 
@@ -46,7 +42,7 @@ namespace mmu
 			return BridgeChange::Unchanged;
 		}
 
-		// Drop the pointer without re-resolving. Call from plugin Unload().
+		// Call from plugin Unload().
 		void Shutdown()
 		{
 			m_iface = nullptr;
@@ -62,7 +58,7 @@ namespace mmu
 			return m_iface;
 		}
 
-		// Null when the other plugin isn't loaded, so guard with Available() first.
+		// Null when unloaded, check Available() first.
 		T *operator->() const
 		{
 			return m_iface;
