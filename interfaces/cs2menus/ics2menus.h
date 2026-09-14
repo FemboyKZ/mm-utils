@@ -36,7 +36,7 @@ enum class MenuType : int
 	Default = -1, // use the server's configured default type (see core.cfg)
 	Chat = 0,     // numbered list printed to chat, navigated by typing 1-9/0
 	Html = 1,     // center-screen HTML panel, navigated with movement keys
-	Panorama = 2, // cs2kz's panorama menu window, clicked with the mouse. Needs the cs2kz workshop addon.
+	Panorama = 2, // Panorama menu window, clicked with the mouse. Needs the cs2menus workshop addon.
 };
 
 // Why a player's menu closed. Delivered to the MenuEnd callback.
