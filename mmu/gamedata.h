@@ -50,6 +50,20 @@ namespace mmu
 		// lea r12, [rip+x] / xor ebx, ebx / sub rsp, 8
 		inline constexpr const char *kGameEventManagerSig = "4C 8D 25 ? ? ? ? 31 DB 48 83 EC 08";
 #endif
+
+		// CreateEntityByName, DispatchSpawn and UTIL_Remove. Keys "CreateEntityByName", "DispatchSpawn", "RemoveEntity".
+#ifdef _WIN32
+		inline constexpr const char *kCreateEntityByNameSig = "48 83 EC 48 C6 44 24 30 00";
+		inline constexpr const char *kDispatchSpawnSig = "48 89 5C 24 ? 57 48 83 EC ? 48 8B DA 48 8B F9 48 85 C9 0F 84 ? ? ? ? 48 85 D2";
+		inline constexpr const char *kRemoveEntitySig = "48 85 C9 74 ? 48 8B D1 48 8B 0D ? ? ? ?";
+#else
+		inline constexpr const char *kCreateEntityByNameSig = "48 8D 05 ? ? ? ? 55 48 89 FA";
+		inline constexpr const char *kDispatchSpawnSig = "48 85 FF 74 ? 55 48 89 E5 41 55 41 54 49 89 FC";
+		inline constexpr const char *kRemoveEntitySig = "48 89 FE 48 85 FF 74 ? 48 8D 05 ? ? ? ? 48";
+#endif
+
+		// CCheckTransmitInfo to the recipient's CPlayerSlot. Key "QuietPlayerSlot".
+		inline constexpr int kCheckTransmitPlayerSlotOffset = 576;
 	} // namespace gamedata
 
 } // namespace mmu

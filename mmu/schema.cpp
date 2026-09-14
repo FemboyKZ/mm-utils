@@ -5,8 +5,17 @@
 
 #include <map>
 
-// Per class cache: fieldNameHash -> offset
-static std::map<uint32_t, std::map<uint32_t, int16_t>> g_schemaCache;
+namespace
+{
+	struct FieldInfo
+	{
+		int32_t offset;
+		SchemaCollectionManipulatorFn_t manipulator;
+	};
+} // namespace
+
+// Per class cache: fieldNameHash -> field
+static std::map<uint32_t, std::map<uint32_t, FieldInfo>> g_schemaCache;
 
 // Returns false when the schema system isn't ready yet.
 static bool InitSchemaFieldsForClass(const char *className, uint32_t classKey)
@@ -49,13 +58,18 @@ static bool InitSchemaFieldsForClass(const char *className, uint32_t classKey)
 	for (int i = 0; i < pClassInfo->m_nFieldCount; i++)
 	{
 		auto &field = pClassInfo->m_pFields[i];
-		uint32_t hash = FNV1a(field.m_pszName);
-		classMap[hash] = field.m_nSingleInheritanceOffset;
+		SchemaCollectionManipulatorFn_t manipulator = nullptr;
+		CSchemaType *type = field.m_pType;
+		if (type && type->m_eTypeCategory == SCHEMA_TYPE_ATOMIC && type->m_eAtomicCategory == SCHEMA_ATOMIC_COLLECTION_OF_T)
+		{
+			manipulator = static_cast<CSchemaType_Atomic_CollectionOfT *>(type)->m_pfnManipulator;
+		}
+		classMap[FNV1a(field.m_pszName)] = {field.m_nSingleInheritanceOffset, manipulator};
 	}
 	return true;
 }
 
-int16_t schema::GetOffset(const char *className, uint32_t classKey, const char *fieldName, uint32_t fieldKey)
+static const FieldInfo *FindField(const char *className, uint32_t classKey, const char *fieldName, uint32_t fieldKey)
 {
 	auto classIt = g_schemaCache.find(classKey);
 	if (classIt == g_schemaCache.end())
@@ -69,10 +83,28 @@ int16_t schema::GetOffset(const char *className, uint32_t classKey, const char *
 		auto fieldIt = classIt->second.find(fieldKey);
 		if (fieldIt != classIt->second.end())
 		{
-			return fieldIt->second;
+			return &fieldIt->second;
 		}
 	}
 
 	MMU_LOG_WARN("Schema: Could not find offset for %s::%s\n", className, fieldName);
-	return 0;
+	return nullptr;
+}
+
+int16_t schema::GetOffset(const char *className, uint32_t classKey, const char *fieldName, uint32_t fieldKey)
+{
+	const FieldInfo *field = FindField(className, classKey, fieldName, fieldKey);
+	return field ? static_cast<int16_t>(field->offset) : 0;
+}
+
+int32_t schema::FindOffset(const char *className, uint32_t classKey, const char *fieldName, uint32_t fieldKey)
+{
+	const FieldInfo *field = FindField(className, classKey, fieldName, fieldKey);
+	return field ? field->offset : -1;
+}
+
+SchemaCollectionManipulatorFn_t schema::GetCollectionManipulator(const char *className, uint32_t classKey, const char *fieldName, uint32_t fieldKey)
+{
+	const FieldInfo *field = FindField(className, classKey, fieldName, fieldKey);
+	return field ? field->manipulator : nullptr;
 }

@@ -30,7 +30,7 @@
 
 // Mirrors MenuType / MenuEndReason / MenuButton / MenuNavAction (ics2menus.h),
 // passed as plain int across the boundary.
-//   type:   -1 Default, 0 Chat, 1 Html
+//   type:   -1 Default, 0 Chat, 1 Html, 2 Panorama
 //   reason:  0 Selected, 1 Exit, 2 Timeout, 3 Disconnect, 4 Cancelled, 5 Destroyed
 //   action:  0 Up, 1 Down, 2 Select, 3 Back
 //   button:  0 Default, 1..13 W/A/S/D/Use/Speed/Duck/Jump/Reload/Attack/Attack2/Score/Inspect, 14 None
@@ -70,7 +70,7 @@ CS2M_API int CS2M_CALL cs2m_is_valid(cs2m_handle menu);
 
 CS2M_API void CS2M_CALL cs2m_set_title(cs2m_handle menu, const char *title);
 CS2M_API int CS2M_CALL cs2m_get_title(cs2m_handle menu, char *buf, int buflen);
-// The menu's base render type as created (-1 Default, 0 Chat, 1 Html); -1 for an invalid handle.
+// The menu's base render type as created (-1 Default, 0 Chat, 1 Html, 2 Panorama); -1 for an invalid handle.
 CS2M_API int CS2M_CALL cs2m_get_menu_type(cs2m_handle menu);
 CS2M_API void CS2M_CALL cs2m_set_exit_button(cs2m_handle menu, int enabled);
 CS2M_API int CS2M_CALL cs2m_get_exit_button(cs2m_handle menu);

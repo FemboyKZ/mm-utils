@@ -10,7 +10,7 @@
 // Menu style options for a consumer plugin's config. "default" defers to mm-cs2menus' own setting.
 struct MenuStyleBlock
 {
-	// "default", "chat" or "html".
+	// "default", "chat", "html" or "panorama".
 	std::string type = "default";
 	// HTML nav keys. "default", "none", or any ParseMenuButton name.
 	std::string navUp = "default";
@@ -27,6 +27,10 @@ struct MenuStyleBlock
 		if (type == "html")
 		{
 			return MenuType::Html;
+		}
+		if (type == "panorama")
+		{
+			return MenuType::Panorama;
 		}
 		return MenuType::Default;
 	}
