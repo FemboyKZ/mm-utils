@@ -1,7 +1,7 @@
 #include "mmu/cvarquery.h"
 #include "mmu/log.h"
 #include "mmu/recipient_filter.h"
-#include "mmu/sigscan.h"
+#include "mmu/server_client.h"
 
 #include <ISmmPlugin.h>
 #include <eiface.h>
@@ -22,19 +22,9 @@ extern IVEngineServer *g_pEngine;
 extern INetworkMessages *g_pNetworkMessages;
 extern IGameEventSystem *g_pGameEventSystem;
 
-// Only ever handled as an opaque vtable owner.
-class CServerSideClient;
-
 namespace
 {
 	constexpr int kMaxPlayers = 64;
-
-#ifdef _WIN32
-	constexpr uint32_t kRespondCvarValueIndex = 38;
-#else
-	constexpr uint32_t kRespondCvarValueIndex = 40;
-#endif
-	constexpr int kClientSlotOffset = 72;
 
 	// Reserved for the two convars queried on connect.
 	constexpr int kLanguageCounter = 0xFFFF;
@@ -49,8 +39,7 @@ namespace
 
 	std::array<ClientData, kMaxPlayers> s_clients;
 
-	// AddGlobal/RemoveGlobal read the vtable pointer out of what they are handed, so they need a slot to aim at.
-	void *s_vtable = nullptr;
+	bool s_hooked = false;
 
 	// Every plugin linking this hooks the same vtable entry and so sees every response.
 	// A per module tag in the cookie's high bits stops one plugin from answering another's cookie.
@@ -70,7 +59,7 @@ namespace
 
 	KHook::Return<bool> OnRespondCvarValue(CServerSideClient *client, const CNetMessagePB<CCLCMsg_RespondCvarValue> &msg)
 	{
-		const int slot = *reinterpret_cast<const int *>(reinterpret_cast<const uint8_t *>(client) + kClientSlotOffset);
+		const int slot = mmu::serverclient::Slot(client);
 		const int cookie = msg.cookie();
 		if (slot < 0 || slot >= kMaxPlayers || (cookie >> 16) != s_cookieTag)
 		{
@@ -105,13 +94,13 @@ namespace
 		return {KHook::Action::Ignore, true};
 	}
 
-	KHook::Virtual<CServerSideClient, bool, const CNetMessagePB<CCLCMsg_RespondCvarValue> &> s_respondHook(kRespondCvarValueIndex, nullptr,
-																										   &OnRespondCvarValue);
+	KHook::Virtual<CServerSideClient, bool, const CNetMessagePB<CCLCMsg_RespondCvarValue> &>
+		s_respondHook(mmu::serverclient::kProcessRespondCvarValueIndex, nullptr, &OnRespondCvarValue);
 
 	// False means nothing went on the wire, so no callback is owed.
 	bool SendQuery(int slot, const char *cvarName, int cookie)
 	{
-		if (!s_vtable || !cvarName || slot < 0 || slot >= kMaxPlayers)
+		if (!s_hooked || !cvarName || slot < 0 || slot >= kMaxPlayers)
 		{
 			return false;
 		}
@@ -154,17 +143,12 @@ namespace mmu
 	{
 		bool Init(const void *engineModuleAnchor)
 		{
-			if (s_vtable)
+			if (s_hooked)
 			{
 				return true;
 			}
-			if (!engineModuleAnchor)
-			{
-				return false;
-			}
 
-			s_vtable = sig::FindVirtualTable(engineModuleAnchor, "CServerSideClient");
-			if (!s_vtable)
+			if (!serverclient::Resolve(engineModuleAnchor))
 			{
 				MMU_LOG_WARN("CServerSideClient vtable not found, client convar queries are disabled.\n");
 				return false;
@@ -178,16 +162,17 @@ namespace mmu
 				s_cookieTag = 1;
 			}
 
-			s_respondHook.AddGlobal(reinterpret_cast<CServerSideClient *>(&s_vtable));
+			s_respondHook.AddGlobal(serverclient::HookTarget());
+			s_hooked = true;
 			return true;
 		}
 
 		void Shutdown()
 		{
-			if (s_vtable)
+			if (s_hooked)
 			{
-				s_respondHook.RemoveGlobal(reinterpret_cast<CServerSideClient *>(&s_vtable));
-				s_vtable = nullptr;
+				s_respondHook.RemoveGlobal(serverclient::HookTarget());
+				s_hooked = false;
 			}
 
 			for (ClientData &data : s_clients)

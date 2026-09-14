@@ -22,6 +22,8 @@ There is no standalone build. Consumers compile the `.cpp` files as part of thei
 | `mmu/print.h/.cpp`        | Chat/console send primitives + `mmu::ChatPrinter` + `MMU_PRINT_*_FN`     |
 | `mmu/chat_command.h`      | Say-quote strip + prefix/command/arg parser                              |
 | `mmu/cvarquery.h/.cpp`    | Client convar queries + per client `cl_language` / OS                    |
+| `mmu/voice_block.h/.cpp`  | Drop a client's voice packets on arrival, e.g. for mutes                 |
+| `mmu/server_client.h`     | `CServerSideClient` vtable resolve, hook indices, slot offset            |
 | `mmu/http_client.h/.cpp`  | Async HTTP(S) GET/POST worker + main-thread queue                        |
 | `mmu/steam_utils.h`       | SteamID64 <-> STEAM_0:X:Y auth id conversion                             |
 | `mmu/gamedata.h/.cpp`     | `mmu::GameData` KV1 offsets loader + shared `mmu::gamedata` offsets/sigs |
