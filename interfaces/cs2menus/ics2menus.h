@@ -216,6 +216,11 @@ enum class MenuStyle : int
 	FooterSeparator,   // text between footer hint segments (default " | ")
 	FooterHintFormat,  // one footer hint, placeholders {label} {keys} (default "{label}: {keys}")
 	FooterRangeFormat, // the two keys in the Move hint, placeholders {up} {down} (default "{up}/{down}")
+
+	// --- Panorama ---
+	// A single character. Panorama page labels ("A - D") skip a leading item prefix of up to 5 letters or digits ending in it,
+	// e.g. "_" labels "kz_grotto" and "surf_utopia" by G and U. "" (default) uses the first character.
+	PagePrefixDelimiter,
 };
 
 // Fired when a player selects an item.

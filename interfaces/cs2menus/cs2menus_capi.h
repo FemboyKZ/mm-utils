@@ -38,7 +38,7 @@
 //   style:   0 Align, 1 FontFace, 2 VisibleItems, 3 TitleColor, 4 TitleSize, 5 RawTitle, 6 ItemColor,
 //            7 ItemSize, 8 DisabledColor, 9 SubmenuSuffix, 10 NavColor, 11 Marker, 12 HighlightText,
 //            13 ShowCounter, 14 CounterColor, 15 CounterSize, 16 CounterFormat, 17 ShowFooter, 18 FooterColor,
-//            19 FooterSize, 20 FooterSeparator, 21 FooterHintFormat, 22 FooterRangeFormat
+//            19 FooterSize, 20 FooterSeparator, 21 FooterHintFormat, 22 FooterRangeFormat, 23 PagePrefixDelimiter
 
 typedef uint32_t cs2m_handle; // 0 = invalid
 
