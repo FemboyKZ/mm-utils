@@ -173,6 +173,7 @@ enum class MenuLabel : int
 };
 
 // Per-menu HTML style fields settable via SetMenuStyle.
+// Colors are "#RRGGBB" or "#RRGGBBAA".
 // Each overrides the matching server default for this one menu.
 // Pass "" to clear the override (inherit).
 // HTML menus only, ignored for chat menus.
@@ -188,7 +189,7 @@ enum class MenuStyle : int
 	VisibleItems, // integer string (e.g. "10"): rows shown at once in the scroll window
 
 	// --- Title ---
-	TitleColor, // hex "#RRGGBB" for the title line
+	TitleColor, // hex for the title line
 	TitleSize,  // size token: "xs" "s" "sm" "m" "ml" "l" "xl" "xxl" "xxxl"
 	RawTitle,   // "1" render the title as raw Panorama markup (unescaped, like SetItemRaw), "0" plain text
 
