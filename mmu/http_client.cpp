@@ -79,6 +79,23 @@ namespace
 		std::string host = url.substr(schemeEnd, hostEnd - schemeEnd);
 		std::string path = (hostEnd < url.size()) ? url.substr(hostEnd) : "/";
 
+		// An explicit port has to be split off, WinHttpConnect takes it separately.
+		// Skipped for a bracketed IPv6 literal, whose colons belong to the address.
+		INTERNET_PORT explicitPort = 0;
+		if (!host.empty() && host.front() != '[')
+		{
+			size_t colon = host.rfind(':');
+			if (colon != std::string::npos && colon + 1 < host.size())
+			{
+				unsigned long parsed = strtoul(host.c_str() + colon + 1, nullptr, 10);
+				if (parsed > 0 && parsed <= 65535)
+				{
+					explicitPort = static_cast<INTERNET_PORT>(parsed);
+					host.resize(colon);
+				}
+			}
+		}
+
 		// Convert to wide
 		auto ToWide = [](const std::string &s) -> std::wstring
 		{
@@ -95,7 +112,7 @@ namespace
 			return false;
 		}
 
-		INTERNET_PORT port = isHttps ? INTERNET_DEFAULT_HTTPS_PORT : INTERNET_DEFAULT_HTTP_PORT;
+		INTERNET_PORT port = explicitPort ? explicitPort : (isHttps ? INTERNET_DEFAULT_HTTPS_PORT : INTERNET_DEFAULT_HTTP_PORT);
 		HINTERNET hConnect = WinHttpConnect(hSession, ToWide(host).c_str(), port, 0);
 		if (!hConnect)
 		{
