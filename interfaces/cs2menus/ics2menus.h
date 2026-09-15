@@ -230,7 +230,11 @@ enum class MenuStyle : int
 using MenuItemSelectFn = std::function<void(MenuHandle menu, int slot, int item)>;
 
 // Fired exactly once when a player's display of `menu` ends, for any reason.
-// For Selected, this fires after the MenuItemSelectFn.
+// For Selected, this fires after the MenuItemSelectFn,
+// and is skipped when that callback re-displayed the same menu for the same player.
+// Stepping into a submenu or back out of one is navigation inside one display, not an end,
+// so neither the parent nor the child fires this until the display itself ends.
+// Only the menu on screen at that point fires it.
 // Use it to free per-menu state (e.g. call DestroyMenu for one-shot menus).
 using MenuEndFn = std::function<void(MenuHandle menu, int slot, MenuEndReason reason)>;
 

@@ -42,6 +42,15 @@ namespace mmu
 			return BridgeChange::Unchanged;
 		}
 
+		// Re-query the interface right before using it in Unload().
+		// meta clear and Metamod shutdown unload plugins without firing OnPluginUnload,
+		// so a cached pointer can already belong to a freed library.
+		bool Revalidate()
+		{
+			m_iface = g_SMAPI ? static_cast<T *>(g_SMAPI->MetaFactory(m_name, nullptr, nullptr)) : nullptr;
+			return m_iface != nullptr;
+		}
+
 		// Call from plugin Unload().
 		void Shutdown()
 		{
