@@ -26,10 +26,26 @@ namespace
 	std::string g_addonName;
 	bool g_toFile = false;
 	FILE *g_file = nullptr;
+	// Date the open file was named after, so a server running past midnight rolls over.
+	std::string g_fileDate;
 
 	std::filesystem::path LogDir()
 	{
 		return std::filesystem::path(g_SMAPI->GetBaseDir()) / "addons" / g_addonName / "logs";
+	}
+
+	std::string Today()
+	{
+		std::time_t now = std::time(nullptr);
+		std::tm tm {};
+#ifdef _WIN32
+		localtime_s(&tm, &now);
+#else
+		localtime_r(&now, &tm);
+#endif
+		char buf[16];
+		snprintf(buf, sizeof(buf), "%04d-%02d-%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+		return buf;
 	}
 
 	void CloseFile()
@@ -62,17 +78,12 @@ namespace
 		char name[256];
 		if (g_setup.newFilePerDay)
 		{
-			std::time_t now = std::time(nullptr);
-			std::tm tm {};
-#ifdef _WIN32
-			localtime_s(&tm, &now);
-#else
-			localtime_r(&now, &tm);
-#endif
-			snprintf(name, sizeof(name), "%s_%04d-%02d-%02d.log", g_addonName.c_str(), tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+			g_fileDate = Today();
+			snprintf(name, sizeof(name), "%s_%s.log", g_addonName.c_str(), g_fileDate.c_str());
 		}
 		else
 		{
+			g_fileDate.clear();
 			snprintf(name, sizeof(name), "%s.log", g_addonName.c_str());
 		}
 
@@ -132,6 +143,11 @@ namespace
 			if (pContext->m_ChannelID != g_channel || !g_toFile)
 			{
 				return;
+			}
+
+			if (g_file && g_setup.newFilePerDay && g_fileDate != Today())
+			{
+				CloseFile();
 			}
 
 			OpenFile();
