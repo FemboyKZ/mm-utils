@@ -230,6 +230,27 @@ namespace mmu
 
 		std::string AuthMatch(const char *column, const std::string &escapedSuffix)
 		{
+			// The suffix lands inside a LIKE pattern, where an unfiltered % or _ would match other players' IDs.
+			// Nothing but "Y:Z" is a real suffix, so anything else matches nobody rather than everybody.
+			bool valid = !escapedSuffix.empty();
+			int colons = 0;
+			for (char c : escapedSuffix)
+			{
+				if (c == ':')
+				{
+					colons++;
+				}
+				else if (c < '0' || c > '9')
+				{
+					valid = false;
+					break;
+				}
+			}
+			if (!valid || colons != 1 || escapedSuffix.front() == ':' || escapedSuffix.back() == ':')
+			{
+				return "0 = 1";
+			}
+
 			char buf[256];
 			snprintf(buf, sizeof(buf), "(%s LIKE 'STEAM_0:%s' OR %s LIKE 'STEAM_1:%s')", column, escapedSuffix.c_str(), column,
 					 escapedSuffix.c_str());
