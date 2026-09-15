@@ -20,8 +20,9 @@ namespace
 		return {KHook::Action::Ignore, true};
 	}
 
-	KHook::Virtual<CServerSideClient, bool, const CNetMessagePB<CCLCMsg_VoiceData> &> s_voiceHook(mmu::serverclient::kProcessVoiceDataIndex, nullptr,
-																								  &OnProcessVoiceData);
+	// Pre, since Supersede in a post callback runs after the packet was already relayed.
+	KHook::Virtual<CServerSideClient, bool, const CNetMessagePB<CCLCMsg_VoiceData> &> s_voiceHook(mmu::serverclient::kProcessVoiceDataIndex,
+																								  &OnProcessVoiceData, nullptr);
 } // namespace
 
 namespace mmu
