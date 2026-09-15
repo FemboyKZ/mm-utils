@@ -18,6 +18,20 @@ public:
 
 	SCHEMA_FIELD(CHandle<CBasePlayerPawn>, m_hPawn)
 
+	SCHEMA_FIELD_OFFSET_FN(m_iszPlayerName)
+
+	// The player's current name, "" until the schema resolves.
+	// The field is a char buffer inline on the controller, not a pointer, so it has no SCHEMA_FIELD accessor.
+	const char *GetPlayerName()
+	{
+		const int16_t offset = m_iszPlayerName_Offset();
+		if (offset <= 0)
+		{
+			return "";
+		}
+		return reinterpret_cast<const char *>(reinterpret_cast<uintptr_t>(this) + offset);
+	}
+
 	// The pawn currently being controlled.
 	// May be the player's own pawn, an observer pawn while dead or spectating, or a bot pawn.
 	// Use GetPlayerPawn for the real one.
