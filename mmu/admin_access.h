@@ -65,6 +65,18 @@ namespace mmu
 			return m_bridge.Available() && m_bridge->IsAdmin(slot);
 		}
 
+		// Same rule as mm-cs2admin's own commands. Console, self and root always pass.
+		// Without mm-cs2admin nobody has immunity.
+		bool CanTarget(int callerSlot, int targetSlot) const
+		{
+			if (callerSlot < 0 || callerSlot == targetSlot || !m_bridge.Available() || m_bridge->HasFlag(callerSlot, CS2ADMIN_FLAG_ROOT))
+			{
+				return true;
+			}
+			int targetImm = m_bridge->GetAdminImmunity(targetSlot);
+			return targetImm <= 0 || m_bridge->GetAdminImmunity(callerSlot) > targetImm;
+		}
+
 	private:
 		InterfaceBridge<ICS2Admin> m_bridge;
 		const char *m_group;
