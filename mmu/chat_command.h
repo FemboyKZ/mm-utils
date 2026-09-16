@@ -29,7 +29,40 @@ namespace mmu
 		return msg;
 	}
 
-	// Parse a chat message into a command. Each prefix string is a set of trigger characters. 
+	// Quote-aware split on spaces and tabs, with the quotes dropped.
+	// Also the way to read console command args from CCommand::ArgS(). The engine tokenizer breaks on ':', which cuts a SteamID apart.
+	inline std::vector<std::string> SplitArgs(const std::string &line)
+	{
+		std::vector<std::string> args;
+		std::string current;
+		bool inQuotes = false;
+		for (char c : line)
+		{
+			if (c == '"')
+			{
+				inQuotes = !inQuotes;
+			}
+			else if ((c == ' ' || c == '\t') && !inQuotes)
+			{
+				if (!current.empty())
+				{
+					args.push_back(current);
+					current.clear();
+				}
+			}
+			else
+			{
+				current += c;
+			}
+		}
+		if (!current.empty())
+		{
+			args.push_back(current);
+		}
+		return args;
+	}
+
+	// Parse a chat message into a command. Each prefix string is a set of trigger characters.
 	// A character in both sets is treated as silent.
 	// Returns false if the message doesn't start with a prefix or has no command name.
 	inline bool ParseChatCommand(const std::string &message, const std::string &normalPrefixes, const std::string &silentPrefixes, ChatCommand &out)
@@ -77,34 +110,7 @@ namespace mmu
 			}
 		}
 
-		// Quote-aware tokenization of the arg line.
-		out.args.clear();
-		std::string current;
-		bool inQuotes = false;
-		for (char c : out.argLine)
-		{
-			if (c == '"')
-			{
-				inQuotes = !inQuotes;
-			}
-			else if (c == ' ' && !inQuotes)
-			{
-				if (!current.empty())
-				{
-					out.args.push_back(current);
-					current.clear();
-				}
-			}
-			else
-			{
-				current += c;
-			}
-		}
-		if (!current.empty())
-		{
-			out.args.push_back(current);
-		}
-
+		out.args = SplitArgs(out.argLine);
 		return true;
 	}
 } // namespace mmu
