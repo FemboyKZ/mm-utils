@@ -13,6 +13,9 @@ namespace mmu
 	{
 		inline constexpr int kDefaultColor = 0x3498DB;
 
+		// Text in these messages often comes from players or Steam, so nothing in it may ping a user, role or @everyone.
+		inline constexpr const char *kNoMentions = "\"allowed_mentions\":{\"parse\":[]},";
+
 		// Refuses non-Discord URLs. Fire-and-forget, failures are only logged.
 		inline void SendPayload(const std::string &webhookUrl, const std::string &json)
 		{
@@ -43,7 +46,7 @@ namespace mmu
 			{
 				return;
 			}
-			SendPayload(webhookUrl, "{\"content\":\"" + json::Escape(content) + "\"}");
+			SendPayload(webhookUrl, "{" + std::string(kNoMentions) + "\"content\":\"" + json::Escape(content) + "\"}");
 		}
 
 		inline void SendEmbed(const std::string &webhookUrl, const char *title, const char *description, int color = kDefaultColor,
@@ -54,7 +57,7 @@ namespace mmu
 				return;
 			}
 
-			std::string payload = "{\"embeds\":[{";
+			std::string payload = "{" + std::string(kNoMentions) + "\"embeds\":[{";
 			payload += "\"title\":\"" + json::Escape(title ? title : "") + "\",";
 			payload += "\"description\":\"" + json::Escape(description ? description : "") + "\",";
 			payload += "\"color\":" + std::to_string(color);
