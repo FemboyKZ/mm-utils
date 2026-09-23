@@ -73,15 +73,14 @@ namespace mmu
 		inline constexpr const char *kCustomHudSetDialogVariableStringSig =
 			"48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 49 8B F0 33 ED 4C 8D 44 24 ? 66 89 6C 24 ? 49 8B F9 48 8B D9";
 		inline constexpr const char *kCustomHudSetInputCaptureEnabledSig =
-			"40 57 48 83 EC ? 41 0F B6 F8 3B 91 ? ? ? ? 7D ? 48 89 5C 24 ? 48 63 C2 48 69 D8 ? ? ? ? 48 03 99 ? ? ? ?";
+			"85 D2 78 ? 48 89 5C 24 10 56 48 83 EC ? 48 89 7C 24 30 41 0F B6 F0 48 8D B9 ? ? ? ?";
 #else
 		inline constexpr const char *kCustomHudSetHasClassSig =
-			"55 48 89 E5 41 57 41 56 41 55 41 89 CD 41 54 49 89 D4 31 D2 53 48 89 FB 48 83 EC ? "
-			"66 89 55 ? 48 8D 55 ? E8 ? ? ? ? 84 C0 75 ? 48 83 C4 ? 5B 41 5C 41 5D 41 5E 41 5F 5D C3";
+			"55 48 89 E5 41 57 49 89 D7 41 56 48 8D 55";
 		inline constexpr const char *kCustomHudSetDialogVariableStringSig =
 			"55 48 89 E5 41 55 49 89 CD 41 54 49 89 D4 31 D2 53 48 89 FB 48 83 EC ? 66 89 55 ? 48 8D 55 ? E8 ? ? ? ? 84 C0 75 ?";
 		inline constexpr const char *kCustomHudSetInputCaptureEnabledSig =
-			"3B B7 ? ? ? ? 0F 8D ? ? ? ? 55 48 89 E5 41 55 41 54 41 89 D4 53 48 63 DE 48 69 DB ? ? ? ? 48 83 EC ? 48 03 9F ? ? ? ? 3A 53 ? 75 ?";
+			"55 48 89 E5 41 55 41 54 53 48 63 DE 48 83 EC 48";
 #endif
 		// CCheckTransmitInfo to the recipient's CPlayerSlot. Key "QuietPlayerSlot".
 		inline constexpr int kCheckTransmitPlayerSlotOffset = 576;
