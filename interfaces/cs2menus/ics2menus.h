@@ -234,6 +234,10 @@ enum class MenuStyle : int
 	// A single character. Panorama page labels ("A - D") skip a leading item prefix of up to 5 letters or digits ending in it,
 	// e.g. "_" labels "kz_grotto" and "surf_utopia" by G and U. "" (default) uses the first character.
 	PagePrefixDelimiter,
+
+	// --- Value items ---
+	ValueFormat, // after a Toggle/Stepper/Choice item's text, placeholder {value} (default ": {value}")
+	EditFormat,  // the {value} of the item being edited, placeholder {value} (default "‹ {value} ›")
 };
 
 // Fired when a player selects an item.
@@ -439,7 +443,7 @@ public:
 	virtual void SetExternalBusy(int slot, bool busy) = 0;
 	virtual bool GetExternalBusy(int slot) = 0;
 
-	// ============================ Value items (004) ===========================
+	// ============================ Value items ===========================
 	// Items holding a value the player changes without leaving the menu. Changes fire the menu's onChange, never onSelect.
 	// The value belongs to the menu, like its text, so per-player settings need a menu per player.
 	// Selecting a Toggle flips it. Selecting a Stepper or Choice opens it for editing:
