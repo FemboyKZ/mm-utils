@@ -8,8 +8,7 @@
 // Public menu API for CS2Menus.
 //
 // Other Metamod plugins acquire this interface via:
-//   ICS2Menus *menus = (ICS2Menus *)g_SMAPI->MetaFactory(
-//       CS2MENUS_INTERFACE, nullptr, nullptr);
+//   ICS2Menus *menus = (ICS2Menus *)g_SMAPI->MetaFactory(CS2MENUS_INTERFACE, nullptr, nullptr);
 //
 // cs2menus owns player chat input: while a player has an open menu,
 // it intercepts their "say"/"say_team" numeric input, drives the menu, and suppresses the chat line.
@@ -19,11 +18,11 @@
 //  - Build/query calls (CreateMenu, AddItem, SetX, GetX...) run inline under a lock.
 //  - DisplayMenu/CancelMenu off-thread are queued for the next GameFrame,
 //    DisplayMenu then returns true optimistically.
-//  - onSelect/onEnd callbacks always fire on the main thread.
+//  - onSelect/onEnd/onChange callbacks always fire on the main thread.
 //  - DestroyMenu off-thread invalidates the handle at once but skips the Destroyed callback.
 //  - GetItemText/GetItemInfo pointers alias internal storage, copy them, don't cache.
 //  - Don't block a main-thread callback on a worker that re-enters this API (lock is held -> deadlock).
-#define CS2MENUS_INTERFACE "ICS2Menus003"
+#define CS2MENUS_INTERFACE "ICS2Menus004"
 
 // Opaque menu identifier returned by CreateMenu. 0 is the invalid sentinel.
 // A handle stays valid until DestroyMenu (or until cs2menus unloads).
@@ -169,7 +168,20 @@ enum class MenuLabel : int
 	Move,     // HTML footer, shown when both up and down are bound
 	Scroll,   // HTML footer, shown when only one of up/down is bound
 	Select,   // HTML footer select hint
+	On,       // Toggle item value, chat and HTML
+	Off,      // Toggle item value, chat and HTML
+	Adjust,   // HTML footer while a Stepper or Choice is being edited
+	Done,     // HTML footer while a Stepper or Choice is being edited
 	Count,    // label count, not a valid argument
+};
+
+// What an item does when picked. See AddToggle, AddStepper and AddChoice.
+enum class MenuItemType : int
+{
+	Normal = 0, // fires onSelect, or opens its submenu
+	Toggle,     // flips between 0 and 1
+	Stepper,    // an integer in [min, max], moved by step
+	Choice,     // one of a list of options, the value is the option's index
 };
 
 // Per-menu HTML style fields settable via SetMenuStyle.
@@ -237,6 +249,10 @@ using MenuItemSelectFn = std::function<void(MenuHandle menu, int slot, int item)
 // Only the menu on screen at that point fires it.
 // Use it to free per-menu state (e.g. call DestroyMenu for one-shot menus).
 using MenuEndFn = std::function<void(MenuHandle menu, int slot, MenuEndReason reason)>;
+
+// Fired when a player changes a Toggle, Stepper or Choice item. `value` is already stored on the item.
+// The menu stays open whatever SetCloseOnSelect says. SetItemValue inside the callback overrides the change.
+using MenuItemChangeFn = std::function<void(MenuHandle menu, int slot, int item, int value)>;
 
 class ICS2Menus
 {
@@ -422,6 +438,28 @@ public:
 	// Pairs with GetActiveMenuType/HasMenu so the other system can yield in turn.
 	virtual void SetExternalBusy(int slot, bool busy) = 0;
 	virtual bool GetExternalBusy(int slot) = 0;
+
+	// ============================ Value items (004) ===========================
+	// Items holding a value the player changes without leaving the menu. Changes fire the menu's onChange, never onSelect.
+	// The value belongs to the menu, like its text, so per-player settings need a menu per player.
+	// Selecting a Toggle flips it. Selecting a Stepper or Choice opens it for editing:
+	// panorama in a popup beside the menu, chat as a list of its steps or options, HTML in place with the Up/Down keys.
+	// Each Add returns the new item's index, or -1.
+
+	virtual int AddToggle(MenuHandle menu, const char *text, bool on, const char *info) = 0;
+	// min > max are swapped, a step below 1 becomes 1, and value is clamped.
+	virtual int AddStepper(MenuHandle menu, const char *text, int value, int min, int max, int step, const char *info) = 0;
+	// Copies the options. HTML cycles through them, wrapping at either end.
+	virtual int AddChoice(MenuHandle menu, const char *text, const char *const *options, int optionCount, int selected, const char *info) = 0;
+
+	// Normal for an invalid handle/index.
+	virtual MenuItemType GetItemType(MenuHandle menu, int item) = 0;
+	// Toggle 0/1, Stepper value, Choice index. Set clamps it, re-renders viewers and doesn't fire onChange. Get is 0 for an invalid handle/index.
+	virtual void SetItemValue(MenuHandle menu, int item, int value) = 0;
+	virtual int GetItemValue(MenuHandle menu, int item) = 0;
+
+	// See MenuItemChangeFn. (No getter: callbacks aren't introspectable.)
+	virtual void SetMenuChangeCallback(MenuHandle menu, MenuItemChangeFn onChange) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_
