@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-// Flat C ABI over ICS2Menus003 (see ics2menus.h).
+// Flat C ABI over ICS2Menus004 (see ics2menus.h).
 //
 // Callback lifetime: a select/end callback is a function pointer into the host's managed runtime.
 // If the host unloads/hot-reloads its plugin assembly while a menu still exists,
@@ -34,11 +34,14 @@
 //   reason:  0 Selected, 1 Exit, 2 Timeout, 3 Disconnect, 4 Cancelled, 5 Destroyed
 //   action:  0 Up, 1 Down, 2 Select, 3 Back
 //   button:  0 Default, 1..13 W/A/S/D/Use/Speed/Duck/Jump/Reload/Attack/Attack2/Score/Inspect, 14 None
-//   label:   0 Exit, 1 NextPage, 2 PrevPage, 3 Move, 4 Scroll, 5 Select
+//   label:   0 Exit, 1 NextPage, 2 PrevPage, 3 Move, 4 Scroll, 5 Select, 6 On, 7 Off, 8 Adjust, 9 Done
 //   style:   0 Align, 1 FontFace, 2 VisibleItems, 3 TitleColor, 4 TitleSize, 5 RawTitle, 6 ItemColor,
 //            7 ItemSize, 8 DisabledColor, 9 SubmenuSuffix, 10 NavColor, 11 Marker, 12 HighlightText,
 //            13 ShowCounter, 14 CounterColor, 15 CounterSize, 16 CounterFormat, 17 ShowFooter, 18 FooterColor,
-//            19 FooterSize, 20 FooterSeparator, 21 FooterHintFormat, 22 FooterRangeFormat, 23 PagePrefixDelimiter
+//            19 FooterSize, 20 FooterSeparator, 21 FooterHintFormat, 22 FooterRangeFormat, 23 PagePrefixDelimiter,
+//            24 ValueFormat, 25 EditFormat, 26 SectionFormat, 27 SectionColor
+//   item type: 0 Normal, 1 Toggle, 2 Stepper, 3 Choice
+//   layout:  0 List, 1 Grid
 
 typedef uint32_t cs2m_handle; // 0 = invalid
 
@@ -46,12 +49,14 @@ typedef uint32_t cs2m_handle; // 0 = invalid
 typedef void(CS2M_CALL *cs2m_select_cb)(cs2m_handle menu, int slot, int item, void *user);
 // Fired exactly once when a player's display ends, for any reason (`reason` above).
 typedef void(CS2M_CALL *cs2m_end_cb)(cs2m_handle menu, int slot, int reason, void *user);
+// Fired when a player changes a Toggle, Stepper or Choice item. `value` is already stored on the item.
+typedef void(CS2M_CALL *cs2m_change_cb)(cs2m_handle menu, int slot, int item, int value, void *user);
 
 // --- Handshake ---
 
 // CS2M_ABI_VERSION the loaded library was built with. Gate before any other call.
 CS2M_API int CS2M_CALL cs2m_abi_version(void);
-// 1 if the underlying ICS2Menus003 instance is reachable.
+// 1 if the underlying ICS2Menus004 instance is reachable.
 // Reserved for future out-of-DLL acquisition, currently always 1 when the symbol resolves.
 CS2M_API int CS2M_CALL cs2m_available(void);
 
@@ -137,5 +142,31 @@ CS2M_API int CS2M_CALL cs2m_get_selected_item(int slot);
 // The host drives this off its own menu open/close. cs2menus never auto-reopens.
 CS2M_API void CS2M_CALL cs2m_set_external_busy(int slot, int busy);
 CS2M_API int CS2M_CALL cs2m_get_external_busy(int slot);
+
+// --- Value items (see ICS2Menus::AddToggle) ---
+
+CS2M_API int CS2M_CALL cs2m_add_toggle(cs2m_handle menu, const char *text, int on, const char *info);
+CS2M_API int CS2M_CALL cs2m_add_stepper(cs2m_handle menu, const char *text, int value, int min, int max, int step, const char *info);
+// Copies the `count` option strings.
+CS2M_API int CS2M_CALL cs2m_add_choice(cs2m_handle menu, const char *text, const char *const *options, int count, int selected, const char *info);
+// `item type` above, 0 for an invalid handle/index.
+CS2M_API int CS2M_CALL cs2m_get_item_type(cs2m_handle menu, int item);
+CS2M_API void CS2M_CALL cs2m_set_item_value(cs2m_handle menu, int item, int value);
+CS2M_API int CS2M_CALL cs2m_get_item_value(cs2m_handle menu, int item);
+// `on_change` may be null to clear it. `user` is echoed back to it.
+CS2M_API void CS2M_CALL cs2m_set_change_callback(cs2m_handle menu, cs2m_change_cb on_change, void *user);
+
+// --- Sections and grids (see ICS2Menus::AddSection) ---
+
+CS2M_API int CS2M_CALL cs2m_add_section(cs2m_handle menu, const char *name);
+CS2M_API int CS2M_CALL cs2m_get_item_section(cs2m_handle menu, int item);
+// `layout` above.
+CS2M_API void CS2M_CALL cs2m_set_menu_layout(cs2m_handle menu, int layout);
+CS2M_API int CS2M_CALL cs2m_get_menu_layout(cs2m_handle menu);
+// An icon name from the game's panorama/images/icons/equipment, like "ak47". "" removes it.
+CS2M_API void CS2M_CALL cs2m_set_item_image(cs2m_handle menu, int item, const char *image);
+CS2M_API int CS2M_CALL cs2m_get_item_image(cs2m_handle menu, int item, char *buf, int buflen);
+CS2M_API void CS2M_CALL cs2m_set_item_subtext(cs2m_handle menu, int item, const char *subtext);
+CS2M_API int CS2M_CALL cs2m_get_item_subtext(cs2m_handle menu, int item, char *buf, int buflen);
 
 #endif // _INCLUDE_CS2MENUS_CAPI_H_
