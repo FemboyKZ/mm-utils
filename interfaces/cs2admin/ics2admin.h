@@ -220,6 +220,11 @@ public:
 
 	// Remove silence (both mute + gag) from a player.
 	virtual void UnsilencePlayer(int targetSlot, int adminSlot) = 0;
+
+	// True while the player's chat line is private to cs2admin, like an admin typing a reason a menu asked for.
+	// A plugin relaying or logging chat should skip it. Holds from before cs2admin's say hook until its post-hook,
+	// so it answers the same whichever plugin's say hook runs first.
+	virtual bool IsChatHidden(int slot) = 0;
 };
 
 #endif // _INCLUDE_ICS2ADMIN_H_
