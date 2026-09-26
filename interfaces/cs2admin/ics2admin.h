@@ -3,6 +3,7 @@
 
 #include <cctype>
 #include <cstdint>
+#include <functional>
 #include <string>
 
 #define CS2ADMIN_INTERFACE "ICS2Admin002"
@@ -221,10 +222,16 @@ public:
 	// Remove silence (both mute + gag) from a player.
 	virtual void UnsilencePlayer(int targetSlot, int adminSlot) = 0;
 
-	// True while the player's chat line is private to cs2admin, like an admin typing a reason a menu asked for.
-	// A plugin relaying or logging chat should skip it. Holds from before cs2admin's say hook until its post-hook,
-	// so it answers the same whichever plugin's say hook runs first.
+	// True while cs2admin keeps the player's chat line private, like a typed ban reason. Chat relays should skip it.
+	// Answers the same in any plugin's say hook.
 	virtual bool IsChatHidden(int slot) = 0;
+
+	// Adds an !admin item, like SourceMod's TopMenu AddItem.
+	// category is "PlayerCommands", "ServerCommands" or a new name. command is the access and sorting name, defaultFlag its fallback.
+	// onSelect runs on the main thread. Returns an id, 0 on failure. Remove every item in Unload.
+	using AdminMenuSelectFn = std::function<void(int slot)>;
+	virtual int AddAdminMenuItem(const char *category, const char *label, const char *command, uint32_t defaultFlag, AdminMenuSelectFn onSelect) = 0;
+	virtual void RemoveAdminMenuItem(int id) = 0;
 };
 
 #endif // _INCLUDE_ICS2ADMIN_H_
