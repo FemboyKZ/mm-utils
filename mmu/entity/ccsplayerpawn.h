@@ -2,8 +2,12 @@
 #define _INCLUDE_MMU_ENTITY_CCSPLAYERPAWN_H_
 
 #include "mmu/schema.h"
+#include "mmu/gamedata.h"
 #include "mmu/entity/cbaseentity.h"
 #include "mmu/entity/in_buttons.h"
+
+#include <mathlib/vector.h>
+#include <tier1/utlvector.h>
 
 #include <cstdint>
 
@@ -56,6 +60,22 @@ public:
 	virtual void StripPlayerWeapons(bool removeSuit) = 0;
 };
 
+// The pawn's CCSPlayer_WeaponServices.
+class CPlayer_WeaponServices
+{
+public:
+	DECLARE_SCHEMA_CLASS(CPlayer_WeaponServices)
+
+	SCHEMA_FIELD(CUtlVector<CEntityHandle>, m_hMyWeapons)
+
+	// Throws the weapon out of the player's hands, like a drop key press.
+	void DropWeapon(CEntityInstance *weapon)
+	{
+		using DropWeapon_t = void (*)(CPlayer_WeaponServices *, CEntityInstance *, Vector *, Vector *);
+		(*reinterpret_cast<DropWeapon_t **>(this))[mmu::gamedata::kWeaponServicesDropWeaponIndex](this, weapon, nullptr, nullptr);
+	}
+};
+
 // CBasePlayerPawn : CBaseEntity
 // Schema class name must match game's class for field resolution.
 class CBasePlayerPawn : public CBaseEntity
@@ -64,6 +84,7 @@ public:
 	DECLARE_SCHEMA_CLASS(CBasePlayerPawn)
 
 	SCHEMA_FIELD(CCSPlayer_ItemServices *, m_pItemServices)
+	SCHEMA_FIELD(CPlayer_WeaponServices *, m_pWeaponServices)
 
 	// The pawn's CInButtonState::m_pButtonStates array, or nullptr if unavailable.
 	const uint64_t *GetButtonStates()

@@ -24,7 +24,7 @@ namespace mmu
 	};
 
 	// Sourced from the CS2Fixes and cs2kz-metamod gamedata files:
-	//   https://github.com/Source2ZE/CS2Fixes/blob/main/gamedata/cs2fixes.games.txt
+	//   https://github.com/Source2ZE/CS2Fixes/blob/dev/gamedata/cs2fixes.jsonc
 	//   https://github.com/KZGlobalTeam/cs2kz-metamod/blob/master/gamedata/cs2kz-core.games.txt
 	namespace gamedata
 	{
@@ -33,6 +33,13 @@ namespace mmu
 		inline constexpr int kGameEntitySystemOffset = 88;
 #else
 		inline constexpr int kGameEntitySystemOffset = 80;
+#endif
+
+		// CCSPlayer_WeaponServices::DropWeapon vtable index. Key "CCSPlayer_WeaponServices::DropWeapon".
+#ifdef _WIN32
+		inline constexpr int kWeaponServicesDropWeaponIndex = 28;
+#else
+		inline constexpr int kWeaponServicesDropWeaponIndex = 29;
 #endif
 
 		// CBaseGameSystemFactory::sm_pFirst, RIP-relative mov with disp at +3. Key "IGameSystem_InitAllSystems_pFirst".
@@ -75,12 +82,10 @@ namespace mmu
 		inline constexpr const char *kCustomHudSetInputCaptureEnabledSig =
 			"85 D2 78 ? 48 89 5C 24 10 56 48 83 EC ? 48 89 7C 24 30 41 0F B6 F0 48 8D B9 ? ? ? ?";
 #else
-		inline constexpr const char *kCustomHudSetHasClassSig =
-			"55 48 89 E5 41 57 49 89 D7 41 56 48 8D 55";
+		inline constexpr const char *kCustomHudSetHasClassSig = "55 48 89 E5 41 57 49 89 D7 41 56 48 8D 55";
 		inline constexpr const char *kCustomHudSetDialogVariableStringSig =
 			"55 48 89 E5 41 55 49 89 CD 41 54 49 89 D4 31 D2 53 48 89 FB 48 83 EC ? 66 89 55 ? 48 8D 55 ? E8 ? ? ? ? 84 C0 75 ?";
-		inline constexpr const char *kCustomHudSetInputCaptureEnabledSig =
-			"55 48 89 E5 41 55 41 54 53 48 63 DE 48 83 EC 48";
+		inline constexpr const char *kCustomHudSetInputCaptureEnabledSig = "55 48 89 E5 41 55 41 54 53 48 63 DE 48 83 EC 48";
 #endif
 		// CCheckTransmitInfo to the recipient's CPlayerSlot. Key "QuietPlayerSlot".
 		inline constexpr int kCheckTransmitPlayerSlotOffset = 576;
