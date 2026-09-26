@@ -143,7 +143,7 @@ CS2M_API int CS2M_CALL cs2m_get_selected_item(int slot);
 CS2M_API void CS2M_CALL cs2m_set_external_busy(int slot, int busy);
 CS2M_API int CS2M_CALL cs2m_get_external_busy(int slot);
 
-// --- Value items (see ICS2Menus::AddToggle) ---
+// --- Value items ---
 
 CS2M_API int CS2M_CALL cs2m_add_toggle(cs2m_handle menu, const char *text, int on, const char *info);
 CS2M_API int CS2M_CALL cs2m_add_stepper(cs2m_handle menu, const char *text, int value, int min, int max, int step, const char *info);
@@ -156,7 +156,7 @@ CS2M_API int CS2M_CALL cs2m_get_item_value(cs2m_handle menu, int item);
 // `on_change` may be null to clear it. `user` is echoed back to it.
 CS2M_API void CS2M_CALL cs2m_set_change_callback(cs2m_handle menu, cs2m_change_cb on_change, void *user);
 
-// --- Sections and grids (see ICS2Menus::AddSection) ---
+// --- Sections and grids ---
 
 CS2M_API int CS2M_CALL cs2m_add_section(cs2m_handle menu, const char *name);
 CS2M_API int CS2M_CALL cs2m_get_item_section(cs2m_handle menu, int item);

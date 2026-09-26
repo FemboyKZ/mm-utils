@@ -60,7 +60,7 @@ public:
 	virtual void StripPlayerWeapons(bool removeSuit) = 0;
 };
 
-// The pawn's CCSPlayer_WeaponServices.
+// Really a CCSPlayer_WeaponServices, DropWeapon is its virtual.
 class CPlayer_WeaponServices
 {
 public:
@@ -68,7 +68,7 @@ public:
 
 	SCHEMA_FIELD(CUtlVector<CEntityHandle>, m_hMyWeapons)
 
-	// Throws the weapon out of the player's hands, like a drop key press.
+	// Like a drop key press.
 	void DropWeapon(CEntityInstance *weapon)
 	{
 		using DropWeapon_t = void (*)(CPlayer_WeaponServices *, CEntityInstance *, Vector *, Vector *);

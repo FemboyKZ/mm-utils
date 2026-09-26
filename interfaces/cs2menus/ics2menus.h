@@ -168,20 +168,19 @@ enum class MenuLabel : int
 	Move,     // HTML footer, shown when both up and down are bound
 	Scroll,   // HTML footer, shown when only one of up/down is bound
 	Select,   // HTML footer select hint
-	On,       // Toggle item value, chat and HTML
-	Off,      // Toggle item value, chat and HTML
-	Adjust,   // HTML footer while a Stepper or Choice is being edited
-	Done,     // HTML footer while a Stepper or Choice is being edited
+	On,       // Toggle value
+	Off,      // Toggle value
+	Adjust,   // HTML footer while editing a value
+	Done,     // HTML footer while editing a value
 	Count,    // label count, not a valid argument
 };
 
-// What an item does when picked. See AddToggle, AddStepper and AddChoice.
 enum class MenuItemType : int
 {
 	Normal = 0, // fires onSelect, or opens its submenu
-	Toggle,     // flips between 0 and 1
+	Toggle,     // 0 or 1
 	Stepper,    // an integer in [min, max], moved by step
-	Choice,     // one of a list of options, the value is the option's index
+	Choice,     // an index into its options
 };
 
 // Per-menu HTML style fields settable via SetMenuStyle.
@@ -236,19 +235,19 @@ enum class MenuStyle : int
 	PagePrefixDelimiter,
 
 	// --- Value items ---
-	ValueFormat, // after a Toggle/Stepper/Choice item's text or an item's subtext, placeholder {value} (default ": {value}")
-	EditFormat,  // the {value} of the item being edited, placeholder {value} (default "‹ {value} ›")
+	ValueFormat, // after a value item's text or an item's subtext, placeholder {value} (default ": {value}")
+	EditFormat,  // the value being edited, placeholder {value} (default "‹ {value} ›")
 
 	// --- Sections ---
-	SectionFormat, // header line above a section's first item, placeholder {section} (default "{section}")
+	SectionFormat, // header line above a section, placeholder {section} (default "{section}")
 	SectionColor,  // hex for that header
 };
 
-// How panorama lays a menu out. Chat and HTML menus are always lists.
+// Panorama only, chat and HTML menus are always lists.
 enum class MenuLayout : int
 {
-	List = 0, // rows, with sections or page ranges in the left column
-	Grid,     // image tiles, with sections as tabs. Falls back to List when the addon has no grid layout.
+	List = 0, // rows, sections or page ranges in the left column
+	Grid,     // image tiles, sections as tabs. List when the addon has no grid layout.
 };
 
 // Fired when a player selects an item.
@@ -265,8 +264,8 @@ using MenuItemSelectFn = std::function<void(MenuHandle menu, int slot, int item)
 // Use it to free per-menu state (e.g. call DestroyMenu for one-shot menus).
 using MenuEndFn = std::function<void(MenuHandle menu, int slot, MenuEndReason reason)>;
 
-// Fired when a player changes a Toggle, Stepper or Choice item. `value` is already stored on the item.
-// The menu stays open whatever SetCloseOnSelect says. SetItemValue inside the callback overrides the change.
+// Fired when a player changes a value item, with `value` already stored. The menu stays open whatever SetCloseOnSelect says.
+// SetItemValue inside overrides the change.
 using MenuItemChangeFn = std::function<void(MenuHandle menu, int slot, int item, int value)>;
 
 class ICS2Menus
@@ -455,21 +454,19 @@ public:
 	virtual bool GetExternalBusy(int slot) = 0;
 
 	// ============================ Value items ===========================
-	// Items holding a value the player changes without leaving the menu. Changes fire the menu's onChange, never onSelect.
-	// The value belongs to the menu, like its text, so per-player settings need a menu per player.
-	// Selecting a Toggle flips it. Selecting a Stepper or Choice opens it for editing:
-	// panorama in a popup beside the menu, chat as a list of its steps or options, HTML in place with the Up/Down keys.
-	// Each Add returns the new item's index, or -1.
+	// Values the player changes in the menu, reported to onChange, never onSelect. They belong to the menu, like its text.
+	// Picking a Toggle flips it. A Stepper or Choice opens for editing: a panorama popup, a chat list, or Up/Down in HTML.
+	// Each Add returns the item's index, or -1.
 
 	virtual int AddToggle(MenuHandle menu, const char *text, bool on, const char *info) = 0;
 	// min > max are swapped, a step below 1 becomes 1, and value is clamped.
 	virtual int AddStepper(MenuHandle menu, const char *text, int value, int min, int max, int step, const char *info) = 0;
-	// Copies the options. HTML cycles through them, wrapping at either end.
+	// Copies the options. HTML wraps at either end.
 	virtual int AddChoice(MenuHandle menu, const char *text, const char *const *options, int optionCount, int selected, const char *info) = 0;
 
 	// Normal for an invalid handle/index.
 	virtual MenuItemType GetItemType(MenuHandle menu, int item) = 0;
-	// Toggle 0/1, Stepper value, Choice index. Set clamps it, re-renders viewers and doesn't fire onChange. Get is 0 for an invalid handle/index.
+	// Toggle 0/1, Stepper value, Choice index. Set clamps, re-renders and skips onChange. Get is 0 for an invalid handle/index.
 	virtual void SetItemValue(MenuHandle menu, int item, int value) = 0;
 	virtual int GetItemValue(MenuHandle menu, int item) = 0;
 
@@ -477,10 +474,8 @@ public:
 	virtual void SetMenuChangeCallback(MenuHandle menu, MenuItemChangeFn onChange) = 0;
 
 	// ========================= Sections and grids ======================
-	// A section groups the items added after it, until the next AddSection. Items added before the first one have none,
-	// and InsertItem takes the section of the item before it. RemoveAllItems drops the sections too.
-	// Panorama shows sections as the list's left column or the grid's tabs, chat and HTML as a header line above each.
-	// Returns the section's index, or -1.
+	// A section holds the items added after it. InsertItem joins the previous item's section, RemoveAllItems drops them.
+	// Panorama shows them as the list's left column or grid tabs, chat and HTML as header lines. Returns the index, or -1.
 	virtual int AddSection(MenuHandle menu, const char *name) = 0;
 	// -1 for no section or an invalid handle/index.
 	virtual int GetItemSection(MenuHandle menu, int item) = 0;
@@ -489,13 +484,13 @@ public:
 	virtual void SetMenuLayout(MenuHandle menu, MenuLayout layout) = 0;
 	virtual MenuLayout GetMenuLayout(MenuHandle menu) = 0;
 
-	// Grid tile image: an icon name from the game's panorama/images/icons/equipment ("ak47", "defuser", "hegrenade").
-	// "" removes it. Ignored by lists. GetItemImage aliases internal storage, copy it; "" if none / invalid.
+	// Grid tile image, an icon name from the game's panorama/images/icons/equipment like "ak47". "" removes it.
+	// GetItemImage aliases internal storage, copy it.
 	virtual void SetItemImage(MenuHandle menu, int item, const char *image) = 0;
 	virtual const char *GetItemImage(MenuHandle menu, int item) = 0;
 
-	// Secondary text, like a price: after the item text through ValueFormat in chat and HTML, in the panorama list's value column,
-	// under a grid tile's name. A value item shows its value instead. GetItemSubtext aliases internal storage, copy it.
+	// Secondary text like a price, shown after the text or under a grid tile. Value items show their value instead.
+	// GetItemSubtext aliases internal storage, copy it.
 	virtual void SetItemSubtext(MenuHandle menu, int item, const char *subtext) = 0;
 	virtual const char *GetItemSubtext(MenuHandle menu, int item) = 0;
 };

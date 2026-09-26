@@ -34,8 +34,8 @@ public:
 		return reinterpret_cast<const char *>(reinterpret_cast<uintptr_t>(this) + offset);
 	}
 
-	// Makes clients redraw this player's scoreboard row, which they only do when the name changes.
-	// A new clan tag stays unseen without it. Toggles a trailing space on the name, CS2Fixes' trick, so it reads the same.
+	// Clients only redraw a scoreboard row on a name change, so a new clan tag needs this.
+	// Toggles a trailing space on the name, like CS2Fixes.
 	void RefreshScoreboardRow()
 	{
 		const int16_t offset = m_iszPlayerName_Offset();

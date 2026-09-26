@@ -60,9 +60,8 @@ public:
 	// Clean name of the map currently running.
 	virtual const char *GetCurrentMap() = 0;
 
-	// The label !nominate shows for `index`: the map with its KZ tiers in chat color codes when tier display is on.
-	// disabled keeps the text after the tiers grey, for a row shown disabled.
-	// Unlike the getters above it's only valid until the next call.
+	// The label !nominate shows for `index`, KZ tiers in chat colors. disabled greys the text after the tiers.
+	// Valid until the next call.
 	virtual const char *GetMapMenuLabel(int index, bool disabled) = 0;
 };
 
