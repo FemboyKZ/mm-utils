@@ -6,6 +6,7 @@
 #include <fstream>
 #include <istream>
 #include <string>
+#include <vector>
 
 namespace kv
 {
@@ -50,7 +51,7 @@ namespace kv
 						;
 					continue;
 				}
-				// Block comments, which SourceMod's configs open with.
+				// Block comments, SourceMod's configs use them.
 				if (next == '*')
 				{
 					in.get();
@@ -193,6 +194,90 @@ namespace kv
 			return false;
 		}
 		ParseSection(file, root.value, handler, userdata);
+		return true;
+	}
+
+	// A whole file as a tree, for nesting and repeated keys.
+	struct Node
+	{
+		std::string key;
+		std::string value;          // empty for a section
+		std::vector<Node> children; // in file order, repeats kept
+		bool section = false;
+
+		// The first child with this key, or nullptr.
+		const Node *Find(const std::string &name) const
+		{
+			for (const Node &child : children)
+			{
+				if (child.key == name)
+				{
+					return &child;
+				}
+			}
+			return nullptr;
+		}
+
+		// The first child value with this key, or fallback.
+		std::string Get(const std::string &name, const std::string &fallback = std::string()) const
+		{
+			const Node *child = Find(name);
+			return child && !child->section ? child->value : fallback;
+		}
+	};
+
+	// Children up to the closing brace or the end of the file.
+	inline void ParseChildren(std::istream &in, std::vector<Node> &out)
+	{
+		while (true)
+		{
+			Token tok = NextToken(in);
+			if (tok.kind == TokenType::CloseBrace || tok.kind == TokenType::EndOfFile)
+			{
+				return;
+			}
+			if (tok.kind != TokenType::String)
+			{
+				continue;
+			}
+			Node node;
+			node.key = tok.value;
+			Token next = NextToken(in);
+			if (next.kind == TokenType::OpenBrace)
+			{
+				node.section = true;
+				ParseChildren(in, node.children);
+			}
+			else if (next.kind == TokenType::String)
+			{
+				node.value = next.value;
+			}
+			else
+			{
+				out.push_back(std::move(node));
+				return;
+			}
+			out.push_back(std::move(node));
+		}
+	}
+
+	// Parse `path`'s "Root { ... }" into root. False if it's missing or malformed.
+	inline bool LoadTree(const std::string &path, Node &root)
+	{
+		std::ifstream file(path);
+		if (!file.is_open())
+		{
+			return false;
+		}
+		Token name = NextToken(file);
+		if (name.kind != TokenType::String || NextToken(file).kind != TokenType::OpenBrace)
+		{
+			return false;
+		}
+		root = Node();
+		root.key = name.value;
+		root.section = true;
+		ParseChildren(file, root.children);
 		return true;
 	}
 
