@@ -236,8 +236,19 @@ enum class MenuStyle : int
 	PagePrefixDelimiter,
 
 	// --- Value items ---
-	ValueFormat, // after a Toggle/Stepper/Choice item's text, placeholder {value} (default ": {value}")
+	ValueFormat, // after a Toggle/Stepper/Choice item's text or an item's subtext, placeholder {value} (default ": {value}")
 	EditFormat,  // the {value} of the item being edited, placeholder {value} (default "‹ {value} ›")
+
+	// --- Sections ---
+	SectionFormat, // header line above a section's first item, placeholder {section} (default "{section}")
+	SectionColor,  // hex for that header
+};
+
+// How panorama lays a menu out. Chat and HTML menus are always lists.
+enum class MenuLayout : int
+{
+	List = 0, // rows, with sections or page ranges in the left column
+	Grid,     // image tiles, with sections as tabs. Falls back to List when the addon has no grid layout.
 };
 
 // Fired when a player selects an item.
@@ -464,6 +475,29 @@ public:
 
 	// See MenuItemChangeFn. (No getter: callbacks aren't introspectable.)
 	virtual void SetMenuChangeCallback(MenuHandle menu, MenuItemChangeFn onChange) = 0;
+
+	// ========================= Sections and grids ======================
+	// A section groups the items added after it, until the next AddSection. Items added before the first one have none,
+	// and InsertItem takes the section of the item before it. RemoveAllItems drops the sections too.
+	// Panorama shows sections as the list's left column or the grid's tabs, chat and HTML as a header line above each.
+	// Returns the section's index, or -1.
+	virtual int AddSection(MenuHandle menu, const char *name) = 0;
+	// -1 for no section or an invalid handle/index.
+	virtual int GetItemSection(MenuHandle menu, int item) = 0;
+
+	// Panorama only. Default List.
+	virtual void SetMenuLayout(MenuHandle menu, MenuLayout layout) = 0;
+	virtual MenuLayout GetMenuLayout(MenuHandle menu) = 0;
+
+	// Grid tile image: an icon name from the game's panorama/images/icons/equipment ("ak47", "defuser", "hegrenade").
+	// "" removes it. Ignored by lists. GetItemImage aliases internal storage, copy it; "" if none / invalid.
+	virtual void SetItemImage(MenuHandle menu, int item, const char *image) = 0;
+	virtual const char *GetItemImage(MenuHandle menu, int item) = 0;
+
+	// Secondary text, like a price: after the item text through ValueFormat in chat and HTML, in the panorama list's value column,
+	// under a grid tile's name. A value item shows its value instead. GetItemSubtext aliases internal storage, copy it.
+	virtual void SetItemSubtext(MenuHandle menu, int item, const char *subtext) = 0;
+	virtual const char *GetItemSubtext(MenuHandle menu, int item) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_
