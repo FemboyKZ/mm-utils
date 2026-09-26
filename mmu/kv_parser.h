@@ -50,6 +50,22 @@ namespace kv
 						;
 					continue;
 				}
+				// Block comments, which SourceMod's configs open with.
+				if (next == '*')
+				{
+					in.get();
+					int prev = 0;
+					while (in.good())
+					{
+						int c = in.get();
+						if (c == EOF || (prev == '*' && c == '/'))
+						{
+							break;
+						}
+						prev = c;
+					}
+					continue;
+				}
 			}
 
 			if (ch == '{')
