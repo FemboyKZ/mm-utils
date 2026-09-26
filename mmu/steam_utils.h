@@ -1,7 +1,9 @@
 #ifndef _INCLUDE_MMU_STEAM_UTILS_H_
 #define _INCLUDE_MMU_STEAM_UTILS_H_
 
+#include <cctype>
 #include <cstdint>
+#include <cstdio>
 #include <string>
 
 // Convert SteamID64 to "X:Y" suffix (the part after STEAM_)
@@ -23,6 +25,36 @@ inline std::string SteamID64ToAuthId(uint64_t steamid64)
 {
 	std::string suffix = SteamID64ToSuffix(steamid64);
 	return "STEAM_0:" + suffix;
+}
+
+// STEAM_X:Y:Z or [U:1:account], in any case, as STEAM_0:Y:Z.
+// Empty for anything else, a SteamID64 included, so callers can pick how to treat bare numbers.
+inline std::string SteamID2Or3ToAuthId(const std::string &input)
+{
+	std::string s = input;
+	for (char &c : s)
+	{
+		c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+	}
+
+	unsigned int x = 0;
+	unsigned int y = 0;
+	unsigned int z = 0;
+	int end = 0;
+	if (sscanf(s.c_str(), "STEAM_%u:%u:%u%n", &x, &y, &z, &end) == 3 && end == static_cast<int>(s.size()))
+	{
+		return "STEAM_0:" + std::to_string(y) + ":" + std::to_string(z);
+	}
+
+	unsigned int universe = 0;
+	unsigned int account = 0;
+	end = 0;
+	if (sscanf(s.c_str(), "[U:%u:%u]%n", &universe, &account, &end) == 2 && end == static_cast<int>(s.size()) && account != 0)
+	{
+		return "STEAM_0:" + std::to_string(account & 1) + ":" + std::to_string(account >> 1);
+	}
+
+	return "";
 }
 
 // Extract the "X:Y" suffix from a "STEAM_0:X:Y" auth ID safely.
