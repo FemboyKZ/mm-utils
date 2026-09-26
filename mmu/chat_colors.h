@@ -25,6 +25,9 @@ namespace mmu
 {
 	// Replace {color} tags ({default}, {red}, {gold}, ...) with raw chat color bytes.
 	std::string ResolveColorTags(const std::string &input);
+
+	// Raw chat color byte for a bare name like "red", or null for an unknown name.
+	const char *ChatColorByName(const std::string &name);
 } // namespace mmu
 
 #endif // _INCLUDE_MMU_CHAT_COLORS_H_
