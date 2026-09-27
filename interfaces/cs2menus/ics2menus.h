@@ -20,7 +20,7 @@
 //    DisplayMenu then returns true optimistically.
 //  - onSelect/onEnd/onChange callbacks always fire on the main thread.
 //  - DestroyMenu off-thread invalidates the handle at once but skips the Destroyed callback.
-//  - GetItemText/GetItemInfo pointers alias internal storage, copy them, don't cache.
+//  - const char * getters alias internal storage, copy them, don't cache.
 //  - Don't block a main-thread callback on a worker that re-enters this API (lock is held -> deadlock).
 #define CS2MENUS_INTERFACE "ICS2Menus004"
 
@@ -243,11 +243,21 @@ enum class MenuStyle : int
 	SectionColor,  // hex for that header
 };
 
-// Panorama only, chat and HTML menus are always lists.
+// Panorama only, falls back to List when the addon lacks the layout.
 enum class MenuLayout : int
 {
-	List = 0, // rows, sections or page ranges in the left column
-	Grid,     // image tiles, sections as tabs. List when the addon has no grid layout.
+	List = 0, // rows
+	Grid,     // image tiles, sections as tabs
+	Showcase, // SetMenuImage on the left, items as 3-column buttons, sections as tabs
+};
+
+// Grows on its own while every section fits one page.
+enum class MenuTileSize : int
+{
+	Small = 0, // 6 x 4
+	Medium,    // 4 x 3
+	Large,     // 3 x 2
+	Cards,     // 3 x 1, full height
 };
 
 // Fired when a player selects an item.
@@ -257,15 +267,16 @@ using MenuItemSelectFn = std::function<void(MenuHandle menu, int slot, int item)
 
 // Fired exactly once when a player's display of `menu` ends, for any reason.
 // For Selected, this fires after the MenuItemSelectFn,
-// and is skipped when that callback re-displayed the same menu for the same player.
-// Stepping into a submenu or back out of one is navigation inside one display, not an end,
-// so neither the parent nor the child fires this until the display itself ends.
-// Only the menu on screen at that point fires it.
+// and is skipped when that callback re-displayed or pushed the same menu for the same player.
+// History navigation isn't an end. When the display ends, every menu in its history fires this.
+// A menu also ends when it leaves the history (dropped forward history, ReplaceMenu).
 // Use it to free per-menu state (e.g. call DestroyMenu for one-shot menus).
 using MenuEndFn = std::function<void(MenuHandle menu, int slot, MenuEndReason reason)>;
 
-// Fired when a player changes a value item, with `value` already stored. The menu stays open whatever SetCloseOnSelect says.
-// SetItemValue inside overrides the change.
+// Panorama refresh button pressed. Rebuild, usually with ReplaceMenu.
+using MenuRefreshFn = std::function<void(MenuHandle menu, int slot)>;
+
+// A value item changed, `value` already stored. Keeps the menu open. SetItemValue inside overrides it.
 using MenuItemChangeFn = std::function<void(MenuHandle menu, int slot, int item, int value)>;
 
 class ICS2Menus
@@ -294,7 +305,7 @@ public:
 	// Each Set re-renders any player currently viewing the menu where it matters.
 	// Each Get returns the value last set (create-time default if never set), or a zero value for an invalid handle.
 
-	// Title text (may contain chat color codes).
+	// Title text (may contain chat color codes). Re-renders an open display.
 	// GetTitle aliases internal storage, copy it, don't cache; "" for an invalid handle.
 	virtual void SetTitle(MenuHandle menu, const char *title) = 0;
 	virtual const char *GetTitle(MenuHandle menu) = 0;
@@ -454,45 +465,77 @@ public:
 	virtual bool GetExternalBusy(int slot) = 0;
 
 	// ============================ Value items ===========================
-	// Values the player changes in the menu, reported to onChange, never onSelect. They belong to the menu, like its text.
-	// Picking a Toggle flips it. A Stepper or Choice opens for editing: a panorama popup, a chat list, or Up/Down in HTML.
-	// Each Add returns the item's index, or -1.
+	// Report changes to onChange, never onSelect. A Toggle flips on pick, a Stepper or Choice opens for editing.
+	// Each Add returns the index, or -1.
 
 	virtual int AddToggle(MenuHandle menu, const char *text, bool on, const char *info) = 0;
-	// min > max are swapped, a step below 1 becomes 1, and value is clamped.
+	// Swaps min > max, step at least 1, value clamped.
 	virtual int AddStepper(MenuHandle menu, const char *text, int value, int min, int max, int step, const char *info) = 0;
-	// Copies the options. HTML wraps at either end.
+	// Copies the options.
 	virtual int AddChoice(MenuHandle menu, const char *text, const char *const *options, int optionCount, int selected, const char *info) = 0;
 
-	// Normal for an invalid handle/index.
 	virtual MenuItemType GetItemType(MenuHandle menu, int item) = 0;
-	// Toggle 0/1, Stepper value, Choice index. Set clamps, re-renders and skips onChange. Get is 0 for an invalid handle/index.
+	// Toggle 0/1, Stepper value, Choice index. Set clamps and skips onChange.
 	virtual void SetItemValue(MenuHandle menu, int item, int value) = 0;
 	virtual int GetItemValue(MenuHandle menu, int item) = 0;
 
-	// See MenuItemChangeFn. (No getter: callbacks aren't introspectable.)
 	virtual void SetMenuChangeCallback(MenuHandle menu, MenuItemChangeFn onChange) = 0;
 
-	// ========================= Sections and grids ======================
-	// A section holds the items added after it. InsertItem joins the previous item's section, RemoveAllItems drops them.
-	// Panorama shows them as the list's left column or grid tabs, chat and HTML as header lines. Returns the index, or -1.
+	// ======================== Sections and subtext =======================
+
+	// Holds the items added after it. Panorama shows tabs or the left column, chat and HTML header lines. Returns the index, or -1.
 	virtual int AddSection(MenuHandle menu, const char *name) = 0;
-	// -1 for no section or an invalid handle/index.
+	// -1 for none.
 	virtual int GetItemSection(MenuHandle menu, int item) = 0;
 
-	// Panorama only. Default List.
+	// Shown after the text or under a tile. Value items show their value instead.
+	virtual void SetItemSubtext(MenuHandle menu, int item, const char *subtext) = 0;
+	virtual const char *GetItemSubtext(MenuHandle menu, int item) = 0;
+
+	// ========================== Panorama layouts =========================
+	// Ignored by chat and HTML. Images are cs2menus addon classes: equipment icons like "ak47", or econ.css names.
+
 	virtual void SetMenuLayout(MenuHandle menu, MenuLayout layout) = 0;
 	virtual MenuLayout GetMenuLayout(MenuHandle menu) = 0;
 
-	// Grid tile image, an icon name from the game's panorama/images/icons/equipment like "ak47". "" removes it.
-	// GetItemImage aliases internal storage, copy it.
+	// Grid minimum, default Small.
+	virtual void SetMenuTileSize(MenuHandle menu, MenuTileSize size) = 0;
+	virtual MenuTileSize GetMenuTileSize(MenuHandle menu) = 0;
+
+	// Grid tile image.
 	virtual void SetItemImage(MenuHandle menu, int item, const char *image) = 0;
 	virtual const char *GetItemImage(MenuHandle menu, int item) = 0;
 
-	// Secondary text like a price, shown after the text or under a grid tile. Value items show their value instead.
-	// GetItemSubtext aliases internal storage, copy it.
-	virtual void SetItemSubtext(MenuHandle menu, int item, const char *subtext) = 0;
-	virtual const char *GetItemSubtext(MenuHandle menu, int item) = 0;
+	// Inside a showcase, beside the box otherwise (hidden while a value popup is open).
+	virtual void SetMenuImage(MenuHandle menu, const char *image) = 0;
+	virtual const char *GetMenuImage(MenuHandle menu) = 0;
+
+	// Showcase: a wide button under the image on every page. -1 for none. Set after the items.
+	virtual void SetMenuPinnedItem(MenuHandle menu, int item) = 0;
+	virtual int GetMenuPinnedItem(MenuHandle menu) = 0;
+
+	// ============================= History ==============================
+	// Browser-like per display. Menus in it keep their page and highlighted row.
+
+	// On top of the current menu, which Back returns to. Works from a CloseOnSelect OnSelect. Clears forward history.
+	// Keeps the current display's timeout.
+	virtual bool PushMenu(MenuHandle menu, int slot, float duration) = 0;
+
+	// In place of the current menu, which ends (Cancelled).
+	virtual bool ReplaceMenu(MenuHandle menu, int slot, float duration) = 0;
+
+	// Back `steps` times. Needs the display open, so not from a CloseOnSelect OnSelect.
+	virtual bool StepBack(int slot, int steps) = 0;
+
+	// Panorama refresh button, see MenuRefreshFn.
+	virtual void SetMenuRefreshCallback(MenuHandle menu, MenuRefreshFn onRefresh) = 0;
+
+	// ========================= Pausing a display ========================
+
+	// Hides the display without ending it, e.g. while the player types in chat. No input meanwhile, GetActiveMenu still returns it.
+	// Another menu on the slot resumes it.
+	virtual void SuspendMenu(int slot) = 0;
+	virtual void ResumeMenu(int slot) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_

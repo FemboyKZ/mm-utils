@@ -5,11 +5,22 @@
 
 #include "mmu/interface_bridge.h"
 
+#include <algorithm>
+#include <vector>
+
 // A consumer plugin's link to mm-cs2menus for one-shot menus.
 // Tracks what it shows per slot, so every menu is freed when its display ends and cancelled when this plugin unloads.
 class CS2MenusClient
 {
 public:
+	// How Present puts a menu on screen, see ICS2Menus.
+	enum class Show
+	{
+		Display, // DisplayMenu, a fresh display
+		Push,    // PushMenu, on top of the current menu with Back to it
+		Replace, // ReplaceMenu, in place of the current menu
+	};
+
 	CS2MenusClient() : m_menus(CS2MENUS_INTERFACE) {}
 
 	// Call from AllPluginsLoaded, OnPluginLoad and OnPluginUnload.
@@ -30,12 +41,17 @@ public:
 		// meta clear unloads plugins without firing OnPluginUnload, so the cached pointer can already be a freed library.
 		if (m_menus.Revalidate())
 		{
-			// CancelMenu fires the end callback, which clears the handle and destroys the menu.
 			for (int i = 0; i <= MAXPLAYERS; i++)
 			{
-				if (m_handle[i] != kInvalidMenuHandle)
+				// CancelMenu ends the display and its whole history, whose end callbacks forget and destroy each menu.
+				if (!m_live[i].empty())
 				{
 					m_menus->CancelMenu(i);
+				}
+				// Anything left was never on screen.
+				for (MenuHandle menu : std::vector<MenuHandle>(m_live[i]))
+				{
+					m_menus->DestroyMenu(menu);
 				}
 			}
 		}
@@ -65,16 +81,14 @@ public:
 	}
 
 	// Shows a menu built on Get() and destroys it once its display ends, after `onEnd` runs.
+	// A menu in a history ends when the whole display does, or when it drops out of the history.
 	// A refused display destroys it at once and returns false. `slot` must be in 0..MAXPLAYERS.
-	bool Present(int slot, MenuHandle menu, float duration, MenuEndFn onEnd = nullptr)
+	bool Present(int slot, MenuHandle menu, float duration, MenuEndFn onEnd = nullptr, Show how = Show::Display)
 	{
 		m_menus->SetMenuEndCallback(menu,
 									[this, onEnd](MenuHandle ended, int s, MenuEndReason reason)
 									{
-										if (s >= 0 && s <= MAXPLAYERS && m_handle[s] == ended)
-										{
-											m_handle[s] = kInvalidMenuHandle;
-										}
+										Forget(s, ended);
 										if (m_menus)
 										{
 											m_menus->DestroyMenu(ended);
@@ -85,13 +99,15 @@ public:
 										}
 									});
 
-		// Recorded before DisplayMenu, since displaying replaces the slot's current menu
-		// and that menu's end callback must not clear the handle just set.
-		m_handle[slot] = menu;
-		if (!m_menus->DisplayMenu(menu, slot, duration))
+		// Recorded before showing, since that can end other menus of this slot whose end callbacks run meanwhile.
+		m_live[slot].push_back(menu);
+		const bool shown = how == Show::Push      ? m_menus->PushMenu(menu, slot, duration)
+						   : how == Show::Replace ? m_menus->ReplaceMenu(menu, slot, duration)
+												  : m_menus->DisplayMenu(menu, slot, duration);
+		if (!shown)
 		{
 			// Refused (a host menu owns the slot), so no end callback will ever free it.
-			m_handle[slot] = kInvalidMenuHandle;
+			Forget(slot, menu);
 			m_menus->DestroyMenu(menu);
 			return false;
 		}
@@ -99,16 +115,26 @@ public:
 	}
 
 private:
+	void Forget(int slot, MenuHandle menu)
+	{
+		if (slot >= 0 && slot <= MAXPLAYERS)
+		{
+			std::vector<MenuHandle> &live = m_live[slot];
+			live.erase(std::remove(live.begin(), live.end(), menu), live.end());
+		}
+	}
+
 	void ClearHandles()
 	{
-		for (MenuHandle &h : m_handle)
+		for (std::vector<MenuHandle> &live : m_live)
 		{
-			h = kInvalidMenuHandle;
+			live.clear();
 		}
 	}
 
 	mmu::InterfaceBridge<ICS2Menus> m_menus;
-	MenuHandle m_handle[MAXPLAYERS + 1] = {};
+	// Menus of ours that are on screen or in a slot's history.
+	std::vector<MenuHandle> m_live[MAXPLAYERS + 1];
 };
 
 #endif // _INCLUDE_CS2MENUS_MENUS_CLIENT_H_
