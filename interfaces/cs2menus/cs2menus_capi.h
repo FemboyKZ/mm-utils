@@ -41,7 +41,8 @@
 //            19 FooterSize, 20 FooterSeparator, 21 FooterHintFormat, 22 FooterRangeFormat, 23 PagePrefixDelimiter,
 //            24 ValueFormat, 25 EditFormat, 26 SectionFormat, 27 SectionColor
 //   item type: 0 Normal, 1 Toggle, 2 Stepper, 3 Choice
-//   layout:  0 List, 1 Grid
+//   layout:  0 List, 1 Grid, 2 Showcase
+//   tile size: 0 Small, 1 Medium, 2 Large, 3 Cards
 
 typedef uint32_t cs2m_handle; // 0 = invalid
 
@@ -51,6 +52,8 @@ typedef void(CS2M_CALL *cs2m_select_cb)(cs2m_handle menu, int slot, int item, vo
 typedef void(CS2M_CALL *cs2m_end_cb)(cs2m_handle menu, int slot, int reason, void *user);
 // Fired when a player changes a Toggle, Stepper or Choice item. `value` is already stored on the item.
 typedef void(CS2M_CALL *cs2m_change_cb)(cs2m_handle menu, int slot, int item, int value, void *user);
+// Fired when a player presses the Panorama refresh button, shown only while one is set. Rebuild the menu's items.
+typedef void(CS2M_CALL *cs2m_refresh_cb)(cs2m_handle menu, int slot, void *user);
 
 // --- Handshake ---
 
@@ -168,5 +171,36 @@ CS2M_API void CS2M_CALL cs2m_set_item_image(cs2m_handle menu, int item, const ch
 CS2M_API int CS2M_CALL cs2m_get_item_image(cs2m_handle menu, int item, char *buf, int buflen);
 CS2M_API void CS2M_CALL cs2m_set_item_subtext(cs2m_handle menu, int item, const char *subtext);
 CS2M_API int CS2M_CALL cs2m_get_item_subtext(cs2m_handle menu, int item, char *buf, int buflen);
+
+// --- Panorama layouts ---
+
+// Grid minimum, `tile size` above, default Small.
+CS2M_API void CS2M_CALL cs2m_set_menu_tile_size(cs2m_handle menu, int size);
+CS2M_API int CS2M_CALL cs2m_get_menu_tile_size(cs2m_handle menu);
+// Inside a showcase, beside the box otherwise. An addon image class like cs2m_set_item_image's. "" removes it.
+CS2M_API void CS2M_CALL cs2m_set_menu_image(cs2m_handle menu, const char *image);
+CS2M_API int CS2M_CALL cs2m_get_menu_image(cs2m_handle menu, char *buf, int buflen);
+// Showcase: a wide button under the image on every page. -1 for none. Set after the items.
+CS2M_API void CS2M_CALL cs2m_set_menu_pinned_item(cs2m_handle menu, int item);
+CS2M_API int CS2M_CALL cs2m_get_menu_pinned_item(cs2m_handle menu);
+
+// --- History ---
+// Browser-like per display, menus in it keep their page and highlighted row.
+
+// On top of the current menu, which Back returns to. Works from a close-on-select select callback. Clears forward history.
+CS2M_API int CS2M_CALL cs2m_push(cs2m_handle menu, int slot, float duration);
+// In place of the current menu, which ends (Cancelled).
+CS2M_API int CS2M_CALL cs2m_replace(cs2m_handle menu, int slot, float duration);
+// Back `steps` times. Needs the display open, so not from a close-on-select select callback.
+CS2M_API int CS2M_CALL cs2m_step_back(int slot, int steps);
+// `on_refresh` may be null to clear it, which hides the button. `user` is echoed back to it.
+CS2M_API void CS2M_CALL cs2m_set_refresh_callback(cs2m_handle menu, cs2m_refresh_cb on_refresh, void *user);
+
+// --- Pausing a display ---
+
+// Hides the display without ending it, like while the player types in chat. No input meanwhile, the active menu stays.
+// Another menu on the slot resumes it.
+CS2M_API void CS2M_CALL cs2m_suspend(int slot);
+CS2M_API void CS2M_CALL cs2m_resume(int slot);
 
 #endif // _INCLUDE_CS2MENUS_CAPI_H_
