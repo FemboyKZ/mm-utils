@@ -21,6 +21,8 @@ There is no standalone build. Consumers compile the `.cpp` files as part of thei
 | `mmu/log.h/.cpp`          | Engine logging channel + `MMU_LOG_*` macros + file mirroring             |
 | `mmu/print.h/.cpp`        | Chat/console send primitives + `mmu::ChatPrinter` + `MMU_PRINT_*_FN`     |
 | `mmu/chat_command.h`      | Say-quote strip + prefix/command/arg parser                              |
+| `mmu/command_args.h`      | cs2kz-style `key=value` command args, `mmu::ParseArgs`, number parsing   |
+| `mmu/target.h`            | `mmu::FindTargets`, @groups/#slot/SteamID/name player targeting          |
 | `mmu/cvarquery.h/.cpp`    | Client convar queries + per client `cl_language` / OS                    |
 | `mmu/voice_block.h/.cpp`  | Drop a client's voice packets on arrival, e.g. for mutes                 |
 | `mmu/server_client.h`     | `CServerSideClient` vtable resolve, hook indices, slot offset            |
