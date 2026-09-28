@@ -26,6 +26,8 @@ namespace mmu
 	{
 		std::vector<ArgKey> keys;
 		const char *main = nullptr;
+		// `main` takes the whole line as typed, quotes and any key= in it included, for a console line like rcon's.
+		bool raw = false;
 	};
 
 	// Values by ArgKey::name. A key given empty, like `reason=`, counts as left out.
@@ -86,6 +88,12 @@ namespace mmu
 	// Works on console command lines too, from CCommand::ArgS(). The engine tokenizer would cut a SteamID apart at its colons.
 	inline ArgError ParseArgs(const std::string &line, const ArgSpec &spec, Args &out, std::string *what = nullptr)
 	{
+		if (spec.raw && spec.main)
+		{
+			out.Set(spec.main, str::Trim(line));
+			return ArgError::None;
+		}
+
 		// A key and '=' at `at`, maybe inside the quote of a "key=value" pair.
 		auto pairAt = [&line](size_t at)
 		{
