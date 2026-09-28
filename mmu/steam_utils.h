@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 
 // Convert SteamID64 to "X:Y" suffix (the part after STEAM_)
@@ -55,6 +56,30 @@ inline std::string SteamID2Or3ToAuthId(const std::string &input)
 	}
 
 	return "";
+}
+
+// STEAM_X:Y:Z, [U:1:account] or a SteamID64 as a SteamID64. 0 for anything else.
+inline uint64_t ParseSteamID64(const std::string &input)
+{
+	const std::string authid = SteamID2Or3ToAuthId(input);
+	unsigned int y = 0;
+	unsigned int z = 0;
+	if (!authid.empty() && sscanf(authid.c_str(), "STEAM_0:%u:%u", &y, &z) == 2)
+	{
+		return 76561197960265728ull + static_cast<uint64_t>(z) * 2 + y;
+	}
+	if (input.size() != 17 || input.compare(0, 4, "7656") != 0)
+	{
+		return 0;
+	}
+	for (char c : input)
+	{
+		if (!std::isdigit(static_cast<unsigned char>(c)))
+		{
+			return 0;
+		}
+	}
+	return strtoull(input.c_str(), nullptr, 10);
 }
 
 // Extract the "X:Y" suffix from a "STEAM_0:X:Y" auth ID safely.
