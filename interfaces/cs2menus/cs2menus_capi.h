@@ -41,7 +41,7 @@
 //            19 FooterSize, 20 FooterSeparator, 21 FooterHintFormat, 22 FooterRangeFormat, 23 PagePrefixDelimiter,
 //            24 ValueFormat, 25 EditFormat, 26 SectionFormat, 27 SectionColor
 //   item type: 0 Normal, 1 Toggle, 2 Stepper, 3 Choice
-//   layout:  0 List, 1 Grid, 2 Showcase
+//   layout:  0 List, 1 Grid, 2 Showcase, 3 Studio
 //   tile size: 0 Small, 1 Medium, 2 Large, 3 Cards
 
 typedef uint32_t cs2m_handle; // 0 = invalid

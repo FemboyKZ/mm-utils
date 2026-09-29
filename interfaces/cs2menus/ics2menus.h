@@ -249,6 +249,11 @@ enum class MenuLayout : int
 	List = 0, // rows
 	Grid,     // image tiles, sections as tabs
 	Showcase, // SetMenuImage on the left, items as 3-column buttons, sections as tabs
+	// Showcase's buttons in a column at the screen's right edge, no image,
+	// the rest of the screen left to a 3D preview the plugin puts there.
+	// A click off the box hides the cursor so the mouse turns the view, the next attack press brings it back.
+	// Falls back to Showcase on an addon without it.
+	Studio,
 };
 
 // Grows on its own while every section fits one page.
