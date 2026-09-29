@@ -183,6 +183,9 @@ CS2M_API int CS2M_CALL cs2m_get_menu_image(cs2m_handle menu, char *buf, int bufl
 // Showcase: a wide button under the image on every page. -1 for none. Set after the items.
 CS2M_API void CS2M_CALL cs2m_set_menu_pinned_item(cs2m_handle menu, int item);
 CS2M_API int CS2M_CALL cs2m_get_menu_pinned_item(cs2m_handle menu);
+// Studio: the item sits in the control panel beside the preview on every page. 0/1.
+CS2M_API void CS2M_CALL cs2m_set_item_control(cs2m_handle menu, int item, int control);
+CS2M_API int CS2M_CALL cs2m_get_item_control(cs2m_handle menu, int item);
 
 // --- History ---
 // Browser-like per display, menus in it keep their page and highlighted row.

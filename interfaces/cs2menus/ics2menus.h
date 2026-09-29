@@ -541,6 +541,13 @@ public:
 	// Another menu on the slot resumes it.
 	virtual void SuspendMenu(int slot) = 0;
 	virtual void ResumeMenu(int slot) = 0;
+
+	// ========================= Studio controls ==========================
+
+	// Studio: the item leaves the pages for the control panel beside the preview, there on every page and tab.
+	// Selected like any other. The other layouts list it normally.
+	virtual void SetItemControl(MenuHandle menu, int item, bool control) = 0;
+	virtual bool GetItemControl(MenuHandle menu, int item) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_
