@@ -41,6 +41,7 @@ There is no standalone build. Consumers compile the `.cpp` files as part of thei
 | `mmu/json.h`              | `json::Escape`, `json::GetString`                                        |
 | `mmu/discord.h`           | Discord webhook send                                                     |
 | `interfaces/<plugin>/*.h` | Public plugin interfaces plus consumer helpers                           |
+| `interfaces/cs2kz/`       | cs2kz's public interface, vendored as is under its own AGPL-3.0 LICENSE  |
 
 ## Usage
 
