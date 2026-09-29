@@ -69,24 +69,6 @@ namespace mmu
 		inline constexpr const char *kRemoveEntitySig = "48 89 FE 48 85 FF 74 ? 48 8D 05 ? ? ? ? 48";
 #endif
 
-		// CCSCustomHudLayout's own setters, from ModSharp's server.games.jsonc:
-		//   https://github.com/Kxnrl/modsharp-public/blob/master/.asset/gamedata/server.games.jsonc
-		// SetHasClass(this, CUtlString *panel, CUtlString *cls, uint32 status) and
-		// SetDialogVariableString(this, CUtlString *panel, CUtlString *name, CUtlString *value) write the global state.
-		// SetInputCaptureEnabled(this, int slot, bool) writes one player's state.
-#ifdef _WIN32
-		inline constexpr const char *kCustomHudSetHasClassSig =
-			"48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 49 8B F0 33 ED 4C 8D 44 24 ? 66 89 6C 24 ? 41 8B F9 48 8B D9";
-		inline constexpr const char *kCustomHudSetDialogVariableStringSig =
-			"48 89 5C 24 ? 48 89 6C 24 ? 48 89 74 24 ? 57 48 83 EC ? 49 8B F0 33 ED 4C 8D 44 24 ? 66 89 6C 24 ? 49 8B F9 48 8B D9";
-		inline constexpr const char *kCustomHudSetInputCaptureEnabledSig =
-			"85 D2 78 ? 48 89 5C 24 10 56 48 83 EC ? 48 89 7C 24 30 41 0F B6 F0 48 8D B9 ? ? ? ?";
-#else
-		inline constexpr const char *kCustomHudSetHasClassSig = "55 48 89 E5 41 57 49 89 D7 41 56 48 8D 55";
-		inline constexpr const char *kCustomHudSetDialogVariableStringSig =
-			"55 48 89 E5 41 55 49 89 CD 41 54 49 89 D4 31 D2 53 48 89 FB 48 83 EC ? 66 89 55 ? 48 8D 55 ? E8 ? ? ? ? 84 C0 75 ?";
-		inline constexpr const char *kCustomHudSetInputCaptureEnabledSig = "55 48 89 E5 41 55 41 54 53 48 63 DE 48 83 EC 48";
-#endif
 		// CCheckTransmitInfo to the recipient's CPlayerSlot. Key "QuietPlayerSlot".
 		inline constexpr int kCheckTransmitPlayerSlotOffset = 576;
 	} // namespace gamedata
