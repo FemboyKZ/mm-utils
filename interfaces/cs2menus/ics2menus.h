@@ -22,7 +22,7 @@
 //  - DestroyMenu off-thread invalidates the handle at once but skips the Destroyed callback.
 //  - const char * getters alias internal storage, copy them, don't cache.
 //  - Don't block a main-thread callback on a worker that re-enters this API (lock is held -> deadlock).
-#define CS2MENUS_INTERFACE "ICS2Menus004"
+#define CS2MENUS_INTERFACE "ICS2Menus005"
 
 // Opaque menu identifier returned by CreateMenu. 0 is the invalid sentinel.
 // A handle stays valid until DestroyMenu (or until cs2menus unloads).
@@ -187,7 +187,7 @@ enum class MenuItemType : int
 // Colors are "#RRGGBB" or "#RRGGBBAA".
 // Each overrides the matching server default for this one menu.
 // Pass "" to clear the override (inherit).
-// HTML menus only, ignored for chat menus.
+// HTML menus, ignored by chat ones. Panorama takes TitleColor, ItemColor, DisabledColor and PagePrefixDelimiter.
 enum class MenuStyle : int
 {
 	// --- Global / layout ---
@@ -243,17 +243,48 @@ enum class MenuStyle : int
 	SectionColor,  // hex for that header
 };
 
-// Panorama only, falls back to List when the addon lacks the layout.
+// How Panorama draws an item. Chat and HTML list every role as a plain row.
+enum class MenuItemRole : int
+{
+	Button,  // picked, the default
+	Readout, // never picked, its subtext labels its text
+	Input,   // an input field over the items, its text what was typed, see BeginMenuInput
+	Heading, // a label over the items after it, never picked
+};
+
+// A tile's corner button, see SetItemCorner.
+enum class MenuCorner : int
+{
+	None,
+	Star,     // hollow, shown on hover
+	StarOn,   // filled, always shown
+	StarUndo, // hollow, always shown: just unstarred
+	Copy,     // shown on hover
+};
+
+// A message's color, and a chip list row's.
+enum class MenuTone : int
+{
+	Info,
+	Ok,
+	Warn,
+	Bad,
+};
+
+// SetItemTeams and SetMenuScope bits.
+constexpr int kMenuTeamT = 1;
+constexpr int kMenuTeamCT = 2;
+
+// Panorama only, each falls back to List when the addon lacks it.
 enum class MenuLayout : int
 {
 	List = 0, // rows
 	Grid,     // image tiles, sections as tabs
 	Showcase, // SetMenuImage on the left, items as 3-column buttons, sections as tabs
-	// Showcase's buttons in a column at the screen's right edge, no image,
-	// the rest of the screen left to a 3D preview the plugin puts there.
-	// A click off the box hides the cursor so the mouse turns the view, the next attack press brings it back.
-	// Falls back to Showcase on an addon without it.
+	// Showcase's buttons at the screen's edge, the rest left to a 3D preview the plugin puts there.
+	// A click off the box lets the mouse turn the view until the next attack press.
 	Studio,
+	Columns, // a column per section, each scrolling on its own: up to 4 sections of 16 items, no pages
 };
 
 // Grows on its own while every section fits one page.
@@ -283,6 +314,28 @@ using MenuRefreshFn = std::function<void(MenuHandle menu, int slot)>;
 
 // A value item changed, `value` already stored. Keeps the menu open. SetItemValue inside overrides it.
 using MenuItemChangeFn = std::function<void(MenuHandle menu, int slot, int item, int value)>;
+
+// A tile's corner button was clicked instead of the tile. SetItemCorner inside sets the new state.
+using MenuItemCornerFn = std::function<void(MenuHandle menu, int slot, int item)>;
+
+// BeginMenuInput's typing was called off by a click in the window.
+using MenuInputCancelFn = std::function<void(MenuHandle menu, int slot)>;
+
+// The input field's clear button was clicked.
+using MenuInputClearFn = std::function<void(MenuHandle menu, int slot)>;
+
+// A confirm dialog was answered. False for cancel, a click off it and a dialog that takes its place.
+using MenuConfirmFn = std::function<void(int slot, bool confirmed)>;
+
+// One of the menu's own tabs was clicked.
+using MenuTabFn = std::function<void(MenuHandle menu, int slot, int tab)>;
+
+// The header's scope chip was clicked.
+using MenuScopeFn = std::function<void(MenuHandle menu, int slot)>;
+
+// A chip was clicked. A filter's `selected` is already stored: the option, -1 for none, or 1 and 0 without options.
+// An action's is the option picked, 0 without options.
+using MenuChipFn = std::function<void(MenuHandle menu, int slot, int chip, int selected)>;
 
 class ICS2Menus
 {
@@ -498,7 +551,8 @@ public:
 	virtual const char *GetItemSubtext(MenuHandle menu, int item) = 0;
 
 	// ========================== Panorama layouts =========================
-	// Ignored by chat and HTML. Images are cs2menus addon classes: equipment icons like "ak47", or econ.css names.
+	// Ignored by chat and HTML. An image is a class of the cs2menus addon, named after the game's own image file:
+	// an equipment icon like "ak47", a skin, sticker or agent render. The addon's README lists the kinds.
 
 	virtual void SetMenuLayout(MenuHandle menu, MenuLayout layout) = 0;
 	virtual MenuLayout GetMenuLayout(MenuHandle menu) = 0;
@@ -515,7 +569,7 @@ public:
 	virtual void SetMenuImage(MenuHandle menu, const char *image) = 0;
 	virtual const char *GetMenuImage(MenuHandle menu) = 0;
 
-	// Showcase: a wide button under the image on every page. -1 for none. Set after the items.
+	// Showcase: a wide button under the page's buttons, on every page. -1 for none. Set after the items.
 	virtual void SetMenuPinnedItem(MenuHandle menu, int item) = 0;
 	virtual int GetMenuPinnedItem(MenuHandle menu) = 0;
 
@@ -542,12 +596,133 @@ public:
 	virtual void SuspendMenu(int slot) = 0;
 	virtual void ResumeMenu(int slot) = 0;
 
-	// ========================= Studio controls ==========================
+	// =====================================================================
+	// ICS2Menus005
+	// =====================================================================
 
-	// Studio: the item leaves the pages for the control panel beside the preview, there on every page and tab.
-	// Selected like any other. The other layouts list it normally.
+	// What a menu created as `type` would show as for this player now: their preference, then the fallbacks for what can't render.
+	virtual MenuType GetSlotMenuType(int slot, MenuType type) = 0;
+
+	// ========================== Item presentation ========================
+	// Panorama only. Showcase and studio draw a Choice of 2 to 5 options in place, a segment per option.
+
+	// An Input item fires onSelect like any other: call BeginMenuInput there, with SetCloseOnSelect off.
+	virtual void SetItemRole(MenuHandle menu, int item, MenuItemRole role) = 0;
+	virtual MenuItemRole GetItemRole(MenuHandle menu, int item) = 0;
+
+	// The accent, like on the equipped pick.
+	virtual void SetItemHighlight(MenuHandle menu, int item, bool highlight) = 0;
+
+	// Showcase and studio: 1 to 3 of the three columns. Columns: 2 for its column's width, 1 for half.
+	virtual void SetItemSpan(MenuHandle menu, int item, int columns) = 0;
+
+	// Studio: in the control panel beside the preview, on every page. Its section is its tab there.
 	virtual void SetItemControl(MenuHandle menu, int item, bool control) = 0;
-	virtual bool GetItemControl(MenuHandle menu, int item) = 0;
+
+	// ============================= Tile badges ===========================
+	// Image tiles. A showcase or studio button without an image takes the rarity and the tag only.
+	// Tokens become class names: letters, digits and dashes.
+
+	// consumer, industrial, milspec, restricted, classified, covert, contraband, highgrade, remarkable, exotic or
+	// extraordinary. "" for none.
+	virtual void SetItemRarity(MenuHandle menu, int item, const char *rarity) = 0;
+	virtual const char *GetItemRarity(MenuHandle menu, int item) = 0;
+	// A short label, like "ST". `style` is "orange", "gold" or "" for the plain look.
+	virtual void SetItemTag(MenuHandle menu, int item, const char *tag, const char *style) = 0;
+	virtual const char *GetItemTag(MenuHandle menu, int item) = 0;
+	// kMenuTeamT and kMenuTeamCT bits.
+	virtual void SetItemTeams(MenuHandle menu, int item, int teams) = 0;
+	virtual int GetItemTeams(MenuHandle menu, int item) = 0;
+	// Picking it still fires onSelect.
+	virtual void SetItemLocked(MenuHandle menu, int item, bool locked) = 0;
+	virtual bool GetItemLocked(MenuHandle menu, int item) = 0;
+	// A button of its own: a click fires the corner callback, not onSelect.
+	virtual void SetItemCorner(MenuHandle menu, int item, MenuCorner corner) = 0;
+	virtual MenuCorner GetItemCorner(MenuHandle menu, int item) = 0;
+	virtual void SetMenuCornerCallback(MenuHandle menu, MenuItemCornerFn onCorner) = 0;
+	// A token the addon has a "tint-<token>" class for, like a graffiti tint's id. "" for none.
+	virtual void SetItemImageTint(MenuHandle menu, int item, const char *tint) = 0;
+
+	// ============================== Info card ============================
+	// Showcase and studio.
+
+	// "" title hides the card. `subtitleColor` is "#RRGGBB", a rarity or "".
+	virtual void SetMenuInfo(MenuHandle menu, const char *title, const char *subtitle, const char *subtitleColor) = 0;
+	// A 0 to 1 bar marked at `value`, dimmed outside the range. `bands` are each band's upper end, at most 5.
+	// A negative value hides it.
+	virtual void SetMenuInfoMeter(MenuHandle menu, float value, float rangeMin, float rangeMax, const float *bands, int bandCount, const char *label,
+								  const char *valueText) = 0;
+	// At most 10. Returns the index, or -1.
+	virtual int AddMenuInfoRow(MenuHandle menu, const char *label, const char *value) = 0;
+	virtual void ClearMenuInfo(MenuHandle menu) = 0;
+
+	// ============================== The header ===========================
+
+	// A chip after the title saying what the picks go to, like "T side". "" hides it. A button with a callback.
+	virtual void SetMenuScope(MenuHandle menu, const char *label, int teams) = 0;
+	virtual void SetMenuScopeCallback(MenuHandle menu, MenuScopeFn onScope) = 0;
+
+	// Unsaved changes: closing or backing out asks first.
+	virtual void SetMenuEdited(MenuHandle menu, bool edited) = 0;
+	virtual bool GetMenuEdited(MenuHandle menu) = 0;
+
+	// ============================ Tabs and chips =========================
+	// Every layout but the list. A click only calls back, the plugin then usually shows another menu with ReplaceMenu.
+	// What a row has no room for goes behind a "+N" tab.
+
+	// In place of the sections' tabs. `marked` puts a dot on it. The selected and any `pinned` one stay in the row.
+	// Returns the index, or -1 past 10.
+	virtual int AddMenuTab(MenuHandle menu, const char *label, bool selected, bool marked, bool pinned) = 0;
+	virtual void SetMenuTabCallback(MenuHandle menu, MenuTabFn onTab) = 0;
+
+	// A filter. With options a click lists them, `selected` the one picked or -1. Without, it toggles: 1 or 0.
+	// An option's text after a line break is a second line. Each Add returns the index, or -1 past the row's room.
+	virtual int AddMenuChip(MenuHandle menu, const char *label, const char *const *options, int optionCount, int selected) = 0;
+	// A button, or with options a list of them. Keeps nothing. `accent` draws it lit.
+	virtual int AddMenuAction(MenuHandle menu, const char *label, const char *const *options, int optionCount, bool accent) = 0;
+	// Takes no click: `label`, then `value`.
+	virtual int AddMenuNote(MenuHandle menu, const char *label, const char *value) = 0;
+	// A list row's color.
+	virtual void SetMenuChipOptionTone(MenuHandle menu, int chip, int option, MenuTone tone) = 0;
+	virtual void SetMenuChipCallback(MenuHandle menu, MenuChipFn onChip) = 0;
+
+	// ============================= The item area =========================
+
+	// Showcase and studio: a small button before the pinned item's. -1 for none. Set after the items.
+	virtual void SetMenuSecondaryItem(MenuHandle menu, int item) = 0;
+
+	// Shown while a page has no items. `loading` pulses it. "" title for nothing.
+	virtual void SetMenuEmpty(MenuHandle menu, const char *title, const char *text, bool loading) = 0;
+
+	// Waits for chat with the menu up, its input field showing `prompt` and, at its end, `hint`. Ends with EndMenuInput,
+	// another menu, or a click in the window, which calls `onCancel`. False on the list and the other types: suspend instead.
+	virtual bool BeginMenuInput(int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel) = 0;
+	virtual void EndMenuInput(int slot) = 0;
+	// With a callback the input field has a clear button while it has text.
+	virtual void SetMenuInputClearCallback(MenuHandle menu, MenuInputClearFn onClear) = 0;
+
+	// ============================== The display ==========================
+	// For the slot's panorama window, whatever menu is in it. False without one.
+
+	// Under the window for `seconds`. On false, print it in chat.
+	virtual bool ShowMenuMessage(int slot, const char *text, MenuTone tone, float seconds) = 0;
+
+	// `danger` draws the confirm button red. On false, go ahead or ask in chat.
+	virtual bool ShowMenuConfirm(int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger,
+								 MenuConfirmFn onDone) = 0;
+
+	// Studio: a part of the hint pill, `keys` separated by spaces, "" for a caption. Up to 5 parts of 4 keys.
+	// Stays until the display ends.
+	virtual bool AddMenuHint(int slot, const char *keys, const char *text) = 0;
+	virtual void ClearMenuHint(int slot) = 0;
+	// No pill at all, until a part is added or the hint cleared.
+	virtual void HideMenuHint(int slot) = 0;
+
+	// Studio: a row of the key list behind the control panel's "?". Up to 8 rows of 3 keys.
+	virtual bool AddMenuHelp(int slot, const char *keys, const char *text) = 0;
+	virtual void ClearMenuHelp(int slot) = 0;
+	// Studio: the box and the control panel swap sides, until the display ends.
+	virtual void SetMenuMirrored(int slot, bool mirrored) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_
