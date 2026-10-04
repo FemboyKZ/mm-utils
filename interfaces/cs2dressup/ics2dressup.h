@@ -270,7 +270,7 @@ struct DressupLook
 };
 
 // How many callbacks ICS2DressupListener has. A listener built with fewer isn't told of the later ones.
-constexpr int kDressupForwards = 14;
+constexpr int kDressupForwards = 12;
 
 // Remove it in your Unload(). Callbacks run after the change is saved, whoever made it, once per team written.
 class ICS2DressupListener
@@ -298,16 +298,13 @@ public:
 	// Any pick may have changed: a saved loadout was equipped or picks were reset.
 	virtual void OnPicksReplaced(int /*slot*/) {}
 
-	virtual void OnStatTrakKill(int /*slot*/, int /*team*/, int /*defIndex*/, int /*kills*/) {}
-
-	virtual void OnMusicKitMvp(int /*slot*/, int /*team*/, int /*musicKit*/, int /*mvps*/) {}
+	// A kill counted on the skin of `defIndex`, or with that 0 an MVP on `musicKit`.
+	virtual void OnStatTrakCount(int /*slot*/, int /*team*/, int /*defIndex*/, int /*musicKit*/, int /*count*/) {}
 
 	virtual void OnSpray(int /*slot*/, int /*graffiti*/, int /*tint*/, int /*entity*/) {}
 
-	// In between the player is frozen and, by core.cfg's defaults, takes no damage and isn't drawn.
-	virtual void OnPreviewStart(int /*slot*/) {}
-
-	virtual void OnPreviewEnd(int /*slot*/) {}
+	// While one is open the player is frozen and, by core.cfg's defaults, takes no damage and isn't drawn.
+	virtual void OnPreview(int /*slot*/, bool /*open*/) {}
 
 	// Slot -1 is the server console. `command` is COMMANDS.md's name without a prefix.
 	// Fires after the command's permission check. Block stops it silently.
