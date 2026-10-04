@@ -1,9 +1,11 @@
 #include "mmu/translations.h"
 #include "mmu/chat_colors.h"
 #include "mmu/kv_parser.h"
+#include "mmu/log.h"
 #include "mmu/str_utils.h"
 
 #include <filesystem>
+#include <string_view>
 
 namespace mmu
 {
@@ -17,9 +19,54 @@ namespace mmu
 		(*map)[ToLower(key)] = value;
 	}
 
+	// The arguments a printf-style text takes, as their length and conversion letters: "sd" for "%s has %d".
+	// A '*' width or precision takes one too, and '?' stands for a conversion printf doesn't have.
+	static std::string FormatArgs(const std::string &text)
+	{
+		static constexpr std::string_view kFlags = "-+ #0123456789.*";
+		static constexpr std::string_view kLengths = "hlLjzt";
+		static constexpr std::string_view kConversions = "diouxXeEfFgGaAcsp";
+		std::string args;
+		for (size_t i = 0; i < text.size(); i++)
+		{
+			if (text[i] != '%')
+			{
+				continue;
+			}
+			size_t at = i + 1;
+			if (at < text.size() && text[at] == '%')
+			{
+				i = at;
+				continue;
+			}
+			for (; at < text.size() && kFlags.find(text[at]) != std::string_view::npos; at++)
+			{
+				if (text[at] == '*')
+				{
+					args += '*';
+				}
+			}
+			for (; at < text.size() && kLengths.find(text[at]) != std::string_view::npos; at++)
+			{
+				args += text[at];
+			}
+			const bool known = at < text.size() && kConversions.find(text[at]) != std::string_view::npos;
+			args += known ? text[at] : '?';
+			i = known ? at : at - 1;
+		}
+		return args;
+	}
+
 	// phrase -> lang -> text. Called with section = phrase name, key = language.
 	void Translations::PhraseHandler(const std::string &section, const std::string &key, const std::string &value, void *userdata)
 	{
+		// The caller formats the text with the arguments it has for the phrase name:
+		// a translation that takes others would read what isn't there. Left out, the phrase falls back like one that isn't translated.
+		if (FormatArgs(value) != FormatArgs(section))
+		{
+			MMU_LOG_WARN("Translation of \"%s\" in \"%s\" takes other format arguments than the phrase, left out.\n", section.c_str(), key.c_str());
+			return;
+		}
 		auto *self = static_cast<Translations *>(userdata);
 		self->m_phrases[section][ToLower(key)] = self->m_resolveColors ? ResolveColorTags(value) : value;
 	}

@@ -14,6 +14,7 @@ namespace mmu
 	public:
 		// Load config.txt (cl_language -> short key map)
 		// and every *.phrases.txt under <baseDir>/addons/<addonName>/translations.
+		// A translation whose printf specifiers differ from its phrase name's is left out, with a warning.
 		void Load(const char *baseDir, const char *addonName);
 
 		// Whether Load resolves {color} tags in phrase values to raw chat color bytes.
