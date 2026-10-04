@@ -288,7 +288,8 @@ public:
 	// Also after !wsreload and ReloadPlayer.
 	virtual void OnPlayerLoaded(int /*slot*/) {}
 
-	// Block refuses the write without a word to the player. Not asked when a saved loadout is equipped or picks are reset.
+	// Block refuses the write without a word to the player.
+	// Equipping a saved loadout and !wsreset ask for each pick they change, one Block refuses the lot.
 	// `skin` is null to take it off.
 	virtual DressupResult OnSkinChange(int /*slot*/, int /*team*/, int /*defIndex*/, const DressupSkin * /*skin*/)
 	{
