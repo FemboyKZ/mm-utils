@@ -68,6 +68,7 @@ enum class DressupPick : int
 	Agent,
 	MusicKit,
 	Pin,
+	MusicStatTrak, // 1 or 0, counts the MVPs of whichever kit is on
 };
 
 // core.cfg's Teams, which team a menu pick is written to.
@@ -327,8 +328,8 @@ public:
 	// The agents' mode or the other picks'. Writes here go to the team given whatever the mode.
 	virtual DressupTeamMode GetTeamMode(bool agents) = 0;
 
-	// Without a team's default knife and agents.
-	virtual int GetItems(DressupItemKind kind, int32_t *defIndexes, int max) = 0;
+	// `stock` adds each team's default knife and agent.
+	virtual int GetItems(DressupItemKind kind, bool stock, int32_t *defIndexes, int max) = 0;
 	virtual bool GetItem(int defIndex, DressupItemInfo *out) = 0;
 	// Names come in the game language of the player in `slot`, English for -1.
 	virtual const char *GetItemName(int defIndex, int slot) = 0;
@@ -371,8 +372,6 @@ public:
 
 	virtual int GetPick(int slot, int team, DressupPick pick) = 0;
 	virtual bool SetPick(int slot, int team, DressupPick pick, int id) = 0;
-	virtual bool GetMusicStatTrak(int slot, int team) = 0;
-	virtual bool SetMusicStatTrak(int slot, int team, bool on) = 0;
 	// The kit's own count, not the shared one the scoreboard may show.
 	virtual int GetMusicMvps(int slot, int team, int musicKit) = 0;
 	virtual bool SetMusicMvps(int slot, int team, int musicKit, int mvps) = 0;
