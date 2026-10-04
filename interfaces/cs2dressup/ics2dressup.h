@@ -20,6 +20,10 @@ constexpr int kDressupStickerSlots = 8;
 // An agent takes GetMaxPatches() of them.
 constexpr int kDressupPatchSlots = 5;
 constexpr int kDressupNameSize = 128;
+// A getter's `loadout` for the picks worn, any other value is a saved loadout's id.
+constexpr int kDressupWorn = -1;
+// The slot standing for a player who isn't in the game, see OnOfflinePlayer.
+constexpr int kDressupOfflineSlot = 255;
 
 // What a pick can be besides an id. 0 is the player's own item.
 constexpr int kDressupAgentGloves = -1;   // gloves only, the agent model's own pair
@@ -270,7 +274,7 @@ struct DressupLook
 };
 
 // How many callbacks ICS2DressupListener has. A listener built with fewer isn't told of the later ones.
-constexpr int kDressupForwards = 12;
+constexpr int kDressupForwards = 15;
 
 // Remove it in your Unload(). Callbacks run after the change is saved, whoever made it, once per team written.
 class ICS2DressupListener
@@ -283,6 +287,18 @@ public:
 
 	// Also after !wsreload and ReloadPlayer.
 	virtual void OnPlayerLoaded(int /*slot*/) {}
+
+	// Block refuses the write without a word to the player. Not asked when a saved loadout is equipped or picks are reset.
+	// `skin` is null to take it off.
+	virtual DressupResult OnSkinChange(int /*slot*/, int /*team*/, int /*defIndex*/, const DressupSkin * /*skin*/)
+	{
+		return DressupResult::Allow;
+	}
+
+	virtual DressupResult OnPickChange(int /*slot*/, int /*team*/, DressupPick /*pick*/, int /*id*/)
+	{
+		return DressupResult::Allow;
+	}
 
 	// `skin` is null when it was taken off, `previous` when there was none. Both are only valid for the call.
 	virtual void OnSkinChanged(int /*slot*/, int /*team*/, int /*defIndex*/, const DressupSkin * /*skin*/, const DressupSkin * /*previous*/) {}
@@ -312,6 +328,10 @@ public:
 	{
 		return DressupResult::Allow;
 	}
+
+	// Told to every listener. `slot` works with the skin, pick, patch, pet and graffiti natives until the call returns.
+	// It's the player's own slot if they joined meanwhile, -1 when the read failed. Offline writes are neither asked nor told.
+	virtual void OnOfflinePlayer(uint64_t /*steamID64*/, int /*slot*/) {}
 };
 
 class ICS2Dressup
@@ -352,6 +372,8 @@ public:
 	virtual bool IsPlayerLoaded(int slot) = 0;
 	// From the database. False without a connection.
 	virtual bool ReloadPlayer(int slot) = 0;
+	// Answers OnOfflinePlayer. False for a player in the game, or without a database connection.
+	virtual bool ReadOfflinePlayer(uint64_t steamID64) = 0;
 	virtual bool CanUse(int slot, DressupFeature feature) = 0;
 	// 0 when dead or holding someone else's weapon.
 	virtual int GetHeldItem(int slot) = 0;
@@ -359,24 +381,24 @@ public:
 	virtual int GetWornItems(int slot, DressupInspectItem *items, int max) = 0;
 
 	// False without a saved skin, the player's own item shows then.
-	virtual bool GetSkin(int slot, int team, int defIndex, DressupSkin *out) = 0;
-	virtual int GetSkinItems(int slot, int team, int32_t *defIndexes, int max) = 0;
+	virtual bool GetSkin(int slot, int team, int defIndex, DressupSkin *out, int loadout = kDressupWorn) = 0;
+	virtual int GetSkinItems(int slot, int team, int32_t *defIndexes, int max, int loadout = kDressupWorn) = 0;
 	// False for a paint kit the item doesn't take, for gloves 0 too unless kDressupRollPaint is set.
 	// The rest is clamped or dropped like !import does. `kills` is kept as given.
 	// A knife's or gloves' skin shows once that model is the pick.
 	virtual bool SetSkin(int slot, int team, int defIndex, const DressupSkin *skin) = 0;
 	virtual bool RemoveSkin(int slot, int team, int defIndex) = 0;
 
-	virtual int GetPick(int slot, int team, DressupPick pick) = 0;
+	virtual int GetPick(int slot, int team, DressupPick pick, int loadout = kDressupWorn) = 0;
 	virtual bool SetPick(int slot, int team, DressupPick pick, int id) = 0;
 	// The kit's own count, not the shared one the scoreboard may show.
-	virtual int GetMusicMvps(int slot, int team, int musicKit) = 0;
+	virtual int GetMusicMvps(int slot, int team, int musicKit, int loadout = kDressupWorn) = 0;
 	virtual bool SetMusicMvps(int slot, int team, int musicKit, int mvps) = 0;
 	// Writes kDressupPatchSlots ids.
-	virtual bool GetPatches(int slot, int team, int agent, int32_t *patches) = 0;
+	virtual bool GetPatches(int slot, int team, int agent, int32_t *patches, int loadout = kDressupWorn) = 0;
 	virtual bool SetPatch(int slot, int team, int agent, int patchSlot, int patch) = 0;
 
-	virtual bool GetPet(int slot, DressupPet *out) = 0;
+	virtual bool GetPet(int slot, DressupPet *out, int loadout = kDressupWorn) = 0;
 	virtual bool SetPet(int slot, const DressupPet *pet) = 0;
 	// Entity index, -1 without one out.
 	virtual int GetPetEntity(int slot) = 0;
@@ -384,7 +406,7 @@ public:
 	virtual int GetPetOwner(int entity) = 0;
 
 	// Either pointer may be null.
-	virtual bool GetGraffiti(int slot, int *graffiti, int *tint) = 0;
+	virtual bool GetGraffiti(int slot, int *graffiti, int *tint, int loadout = kDressupWorn) = 0;
 	virtual bool SetGraffiti(int slot, int graffiti, int tint) = 0;
 	// No cooldown. `graffiti` 0 sprays the player's own pick.
 	virtual bool Spray(int slot, int graffiti, int tint) = 0;
@@ -402,8 +424,18 @@ public:
 	virtual bool GetSavedLoadout(int slot, int id, DressupSavedLoadout *out) = 0;
 	// False for the active one.
 	virtual bool EquipSavedLoadout(int slot, int id) = 0;
+	// The new one's id or -1. `copy` starts it from the picks worn.
+	virtual int AddSavedLoadout(int slot, const char *name, bool copy) = 0;
+	virtual bool RenameSavedLoadout(int slot, int id, const char *name) = 0;
+	// False for the active one.
+	virtual bool DeleteSavedLoadout(int slot, int id) = 0;
 	virtual int GetLooks(int slot, int defIndex, int32_t *ids, int max) = 0;
 	virtual bool GetLook(int slot, int defIndex, int id, DressupLook *out) = 0;
+	// The new one's id or -1.
+	virtual int AddLook(int slot, int defIndex, const char *name, const DressupSkin *skin) = 0;
+	// `name` or `skin` null keeps it.
+	virtual bool SetLook(int slot, int defIndex, int id, const char *name, const DressupSkin *skin) = 0;
+	virtual bool DeleteLook(int slot, int defIndex, int id) = 0;
 
 	virtual bool CanPreview(int slot) = 0;
 	virtual bool IsPreviewing(int slot) = 0;
