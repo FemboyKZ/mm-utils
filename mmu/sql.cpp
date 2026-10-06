@@ -1,9 +1,9 @@
 #include "mmu/sql.h"
 #include "mmu/log.h"
 
-#include <sql_mm.h>
-#include <mysql_mm.h>
-#include <sqlite_mm.h>
+#include "interfaces/sql_mm/sql_mm.h"
+#include "interfaces/sql_mm/mysql_mm.h"
+#include "interfaces/sql_mm/sqlite_mm.h"
 
 #include <ISmmPlugin.h>
 

@@ -42,6 +42,7 @@ There is no standalone build. Consumers compile the `.cpp` files as part of thei
 | `mmu/discord.h`           | Discord webhook send                                                     |
 | `interfaces/<plugin>/*.h` | Public plugin interfaces plus consumer helpers                           |
 | `interfaces/cs2kz/`       | cs2kz's public interface, vendored as is under its own AGPL-3.0 LICENSE  |
+| `interfaces/sql_mm/`      | sql_mm's public interface (GPL-3.0), vendored as is                      |
 
 ## Usage
 
