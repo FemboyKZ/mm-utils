@@ -43,6 +43,7 @@ public:
 		{
 			for (int i = 0; i <= MAXPLAYERS; i++)
 			{
+				HideNotice(i);
 				// CancelMenu ends the display and its whole history, whose end callbacks forget and destroy each menu.
 				if (!m_live[i].empty())
 				{
@@ -114,6 +115,23 @@ public:
 		return true;
 	}
 
+	// Remembered, so Shutdown hides it.
+	bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onClick)
+	{
+		m_notice[slot] = m_menus->ShowNotice(slot, title, text, hint, seconds, std::move(onClick));
+		return m_notice[slot];
+	}
+
+	// Only ours, plugins share a slot's one notice.
+	void HideNotice(int slot)
+	{
+		if (m_notice[slot])
+		{
+			m_notice[slot] = false;
+			m_menus->HideNotice(slot);
+		}
+	}
+
 private:
 	void Forget(int slot, MenuHandle menu)
 	{
@@ -130,11 +148,13 @@ private:
 		{
 			live.clear();
 		}
+		std::fill(m_notice, m_notice + MAXPLAYERS + 1, false);
 	}
 
 	mmu::InterfaceBridge<ICS2Menus> m_menus;
 	// Menus of ours that are on screen or in a slot's history.
 	std::vector<MenuHandle> m_live[MAXPLAYERS + 1];
+	bool m_notice[MAXPLAYERS + 1] = {};
 };
 
 #endif // _INCLUDE_CS2MENUS_MENUS_CLIENT_H_

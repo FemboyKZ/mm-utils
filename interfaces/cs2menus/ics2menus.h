@@ -342,6 +342,8 @@ using MenuScopeFn = std::function<void(MenuHandle menu, int slot)>;
 // An action's is the option picked, 0 without options.
 using MenuChipFn = std::function<void(MenuHandle menu, int slot, int chip, int selected)>;
 
+using MenuNoticeFn = std::function<void(int slot)>;
+
 class ICS2Menus
 {
 public:
@@ -735,6 +737,12 @@ public:
 	// kMenuText bits for the menu's chat and HTML displays, 0 by default.
 	virtual void SetMenuTextFeatures(MenuHandle menu, int features) = 0;
 	virtual int GetMenuTextFeatures(MenuHandle menu) = 0;
+
+	// A panorama box at the top of the screen that never takes the mouse. One per slot, apart from its menu.
+	// `seconds` counts down in it and then hides it, 0 keeps it until HideNotice. False without a window for it.
+	// `onClick` runs on Mouse1 with the scoreboard key held. Hide the notice in Unload(), it points into your plugin.
+	virtual bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onClick) = 0;
+	virtual void HideNotice(int slot) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_
