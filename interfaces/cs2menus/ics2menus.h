@@ -271,6 +271,10 @@ enum class MenuTone : int
 	Bad,
 };
 
+// SetMenuTextFeatures bits.
+constexpr int kMenuTextConfirm = 1; // ShowMenuConfirm and the unsaved changes question
+constexpr int kMenuTextPinned = 2;  // chat: the pinned and secondary item on every page
+
 // SetItemTeams and SetMenuScope bits.
 constexpr int kMenuTeamT = 1;
 constexpr int kMenuTeamCT = 2;
@@ -708,6 +712,7 @@ public:
 	virtual bool ShowMenuMessage(int slot, const char *text, MenuTone tone, float seconds) = 0;
 
 	// `danger` draws the confirm button red. On false, go ahead or ask in chat.
+	// With kMenuTextConfirm chat and HTML ask too.
 	virtual bool ShowMenuConfirm(int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger,
 								 MenuConfirmFn onDone) = 0;
 
@@ -723,6 +728,12 @@ public:
 	virtual void ClearMenuHelp(int slot) = 0;
 	// Studio: the box and the control panel swap sides, until the display ends.
 	virtual void SetMenuMirrored(int slot, bool mirrored) = 0;
+
+	// ===================== Panorama features as text =====================
+
+	// kMenuText bits for the menu's chat and HTML displays, 0 by default.
+	virtual void SetMenuTextFeatures(MenuHandle menu, int features) = 0;
+	virtual int GetMenuTextFeatures(MenuHandle menu) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_

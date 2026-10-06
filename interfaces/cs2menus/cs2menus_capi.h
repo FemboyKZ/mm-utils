@@ -317,5 +317,8 @@ CS2M_API int CS2M_CALL cs2m_add_help(int slot, const char *keys, const char *tex
 CS2M_API void CS2M_CALL cs2m_clear_help(int slot);
 // See ICS2Menus::SetMenuMirrored.
 CS2M_API void CS2M_CALL cs2m_set_mirrored(int slot, int mirrored);
+// See ICS2Menus::SetMenuTextFeatures.
+CS2M_API void CS2M_CALL cs2m_set_text_features(cs2m_handle menu, int features);
+CS2M_API int CS2M_CALL cs2m_get_text_features(cs2m_handle menu);
 
 #endif // _INCLUDE_CS2MENUS_CAPI_H_
