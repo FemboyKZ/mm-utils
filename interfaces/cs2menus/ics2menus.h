@@ -290,6 +290,9 @@ enum class MenuLayout : int
 	// A click off the box lets the mouse turn the view until the next attack press.
 	Studio,
 	Columns, // a column per section, each scrolling on its own: up to 4 sections of 16 items, no pages
+	// A row per item: its text, then its cells under the menu's column headings.
+	// Pages fill the window and break between sections, or between first letters in a menu sorted by them.
+	Table,
 };
 
 // Grows on its own while every section fits one page.
@@ -343,6 +346,8 @@ using MenuScopeFn = std::function<void(MenuHandle menu, int slot)>;
 using MenuChipFn = std::function<void(MenuHandle menu, int slot, int chip, int selected)>;
 
 using MenuNoticeFn = std::function<void(int slot)>;
+
+using MenuColumnFn = std::function<void(MenuHandle menu, int slot, int column)>;
 
 class ICS2Menus
 {
@@ -740,9 +745,20 @@ public:
 
 	// A panorama box at the top of the screen that never takes the mouse. One per slot, apart from its menu.
 	// `seconds` counts down in it and then hides it, 0 keeps it until HideNotice. False without a window for it.
-	// `onClick` runs on Mouse1 with the scoreboard key held. Hide the notice in Unload(), it points into your plugin.
-	virtual bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onClick) = 0;
+	// `onMouse1` runs on Mouse1 with the scoreboard key held. Hide the notice in Unload(), it points into your plugin.
+	virtual bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1) = 0;
 	virtual void HideNotice(int slot) = 0;
+
+	// Table: a heading, a button with a callback. The first is over the items' text, each one after it over `cells` of their cells.
+	// `sort` draws an arrow, 1 up and -1 down. Returns the index, or -1 past 6.
+	virtual int AddMenuColumn(MenuHandle menu, const char *label, int cells, int sort) = 0;
+	virtual void SetMenuColumnCallback(MenuHandle menu, MenuColumnFn onColumn) = 0;
+
+	// Table: under the headings after the first, 12 at most. Two characters each, in the chat color it starts with.
+	// "" keeps its place.
+	virtual void SetItemCells(MenuHandle menu, int item, const char *const *cells, int count) = 0;
+	// Table: more than the row has room for. A button at its end lists the lines in the popup beside the window.
+	virtual void SetItemDetails(MenuHandle menu, int item, const char *const *lines, int count) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_

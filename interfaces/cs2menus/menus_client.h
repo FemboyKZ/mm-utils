@@ -116,9 +116,9 @@ public:
 	}
 
 	// Remembered, so Shutdown hides it.
-	bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onClick)
+	bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1)
 	{
-		m_notice[slot] = m_menus->ShowNotice(slot, title, text, hint, seconds, std::move(onClick));
+		m_notice[slot] = m_menus->ShowNotice(slot, title, text, hint, seconds, std::move(onMouse1));
 		return m_notice[slot];
 	}
 

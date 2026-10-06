@@ -41,7 +41,7 @@
 //            19 FooterSize, 20 FooterSeparator, 21 FooterHintFormat, 22 FooterRangeFormat, 23 PagePrefixDelimiter,
 //            24 ValueFormat, 25 EditFormat, 26 SectionFormat, 27 SectionColor
 //   item type: 0 Normal, 1 Toggle, 2 Stepper, 3 Choice
-//   layout:  0 List, 1 Grid, 2 Showcase, 3 Studio, 4 Columns
+//   layout:  0 List, 1 Grid, 2 Showcase, 3 Studio, 4 Columns, 5 Table
 //   tile size: 0 Small, 1 Medium, 2 Large, 3 Cards
 //   item role: 0 Button, 1 Readout, 2 Input, 3 Heading
 //   corner:  0 None, 1 Star, 2 StarOn, 3 StarUndo, 4 Copy
@@ -72,6 +72,10 @@ typedef void(CS2M_CALL *cs2m_tab_cb)(cs2m_handle menu, int slot, int tab, void *
 typedef void(CS2M_CALL *cs2m_scope_cb)(cs2m_handle menu, int slot, void *user);
 // Fired when a player clicks a chip: a filter's `selected` is already stored on it, an action's is the option picked.
 typedef void(CS2M_CALL *cs2m_chip_cb)(cs2m_handle menu, int slot, int chip, int selected, void *user);
+// Fired on Mouse1 with the scoreboard key held, while the slot's notice is up.
+typedef void(CS2M_CALL *cs2m_notice_cb)(int slot, void *user);
+// Fired when a player clicks a table heading.
+typedef void(CS2M_CALL *cs2m_column_cb)(cs2m_handle menu, int slot, int column, void *user);
 
 // --- Handshake ---
 
@@ -320,5 +324,21 @@ CS2M_API void CS2M_CALL cs2m_set_mirrored(int slot, int mirrored);
 // See ICS2Menus::SetMenuTextFeatures.
 CS2M_API void CS2M_CALL cs2m_set_text_features(cs2m_handle menu, int features);
 CS2M_API int CS2M_CALL cs2m_get_text_features(cs2m_handle menu);
+
+// --- Notices ---
+
+// See ICS2Menus::ShowNotice. `on_mouse1` may be null. Returns 0 when the slot can't be shown one.
+CS2M_API int CS2M_CALL cs2m_show_notice(int slot, const char *title, const char *text, const char *hint, float seconds, cs2m_notice_cb on_mouse1,
+										void *user);
+CS2M_API void CS2M_CALL cs2m_hide_notice(int slot);
+
+// --- Table ---
+
+// See ICS2Menus::AddMenuColumn. `on_column` may be null to clear it, the headings are buttons while it's set.
+CS2M_API int CS2M_CALL cs2m_add_menu_column(cs2m_handle menu, const char *label, int cells, int sort);
+CS2M_API void CS2M_CALL cs2m_set_column_callback(cs2m_handle menu, cs2m_column_cb on_column, void *user);
+// See ICS2Menus::SetItemCells and SetItemDetails. Each copies the `count` strings.
+CS2M_API void CS2M_CALL cs2m_set_item_cells(cs2m_handle menu, int item, const char *const *cells, int count);
+CS2M_API void CS2M_CALL cs2m_set_item_details(cs2m_handle menu, int item, const char *const *lines, int count);
 
 #endif // _INCLUDE_CS2MENUS_CAPI_H_
