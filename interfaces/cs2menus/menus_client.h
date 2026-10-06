@@ -3,7 +3,7 @@
 
 #include "interfaces/cs2menus/ics2menus.h"
 
-#include "mmu/interface_bridge.h"
+#include "interfaces/interface_bridge.h"
 
 #include <algorithm>
 #include <vector>

@@ -4,45 +4,71 @@ Shared utility code for Metamod:Source plugins.
 
 Vendor into plugin as a git submodule at `vendor/mm-utils`.
 
-There is no standalone build. Consumers compile the `.cpp` files as part of their own binary and add this repo's root to their include path.
+There is no standalone build.
+Consumers compile the `.cpp` files as part of their own binary and add this repo's root to their include path.
 
 ## Contents
 
-| Path                      | What                                                                     |
-| ------------------------- | ------------------------------------------------------------------------ |
-| `mmu/kv_parser.h`         | Minimal Valve KeyValues1 tokenizer/parser (`kv::LoadFile`)               |
-| `mmu/str_utils.h`         | `str::ToLower`, `str::ToLowerInPlace`, `str::Trim`, `str::StripPort`     |
-| `mmu/plugin_globals.h`    | Shared engine + Metamod interface globals + `MMU_GET_CORE_INTERFACES`    |
-| `mmu/sql.h/.cpp`          | `mmu::sql::Connection`, sql_mm connect/query/escape helpers              |
-| `mmu/chat_colors.h/.cpp`  | `CHAT_COLOR_*` macros, `mmu::ResolveColorTags`                           |
-| `mmu/translations.h/.cpp` | `mmu::Translations`, SourceMod-style phrase tables                       |
-| `mmu/recipient_filter.h`  | `CSingleRecipientFilter`, `CMultiRecipientFilter`                        |
-| `mmu/schema.h/.cpp`       | Schema offset resolver, `DECLARE_SCHEMA_CLASS`, `SCHEMA_FIELD`           |
-| `mmu/log.h/.cpp`          | Engine logging channel + `MMU_LOG_*` macros + file mirroring             |
-| `mmu/print.h/.cpp`        | Chat/console send primitives + `mmu::ChatPrinter` + `MMU_PRINT_*_FN`     |
-| `mmu/chat_command.h`      | Say-quote strip + prefix/command/arg parser                              |
-| `mmu/command_args.h`      | cs2kz-style `key=value` command args, `mmu::ParseArgs`, number parsing   |
-| `mmu/target.h`            | `mmu::FindTargets`, @groups/#slot/SteamID/name player targeting          |
-| `mmu/cvarquery.h/.cpp`    | Client convar queries + per client `cl_language` / OS                    |
-| `mmu/voice_block.h/.cpp`  | Drop a client's voice packets on arrival, e.g. for mutes                 |
-| `mmu/server_client.h`     | `CServerSideClient` vtable resolve, hook indices, slot offset            |
-| `mmu/http_client.h/.cpp`  | Async HTTP(S) GET/POST worker + main-thread queue                        |
-| `mmu/steam_utils.h`       | SteamID64 <-> STEAM_0:X:Y auth id conversion                             |
-| `mmu/gamedata.h/.cpp`     | `mmu::GameData` KV1 offsets loader + shared `mmu::gamedata` offsets/sigs |
-| `mmu/sigscan.h/.cpp`      | `sig::` module range/section, KHook-backed sig scan, vtable by RTTI      |
-| `mmu/gamesystem.h/.cpp`   | Engine game system factory list resolve + `FindByName`                   |
-| `mmu/workshop.h/.cpp`     | Workshop registry checks, stale-ACF pruning, `PendingDownload`           |
-| `mmu/entity/*.h`          | Entity wrappers, button masks, `mmu::EntitySystem`                       |
-| `mmu/interface_bridge.h`  | `mmu::InterfaceBridge<T>`, cached cross-plugin interface pointer         |
-| `mmu/admin_access.h`      | `mmu::AdminAccess`, mm-cs2admin permission checks for consumers          |
-| `mmu/config_blocks.h`     | Shared `[Database]` and log config blocks                                |
-| `mmu/player_table.h`      | `mmu::PlayerTable<T>`, bounds-checked per-slot storage                   |
-| `mmu/maplist.h`           | maplist.txt line parser                                                  |
-| `mmu/json.h`              | `json::Escape`, `json::GetString`                                        |
-| `mmu/discord.h`           | Discord webhook send                                                     |
-| `interfaces/<plugin>/*.h` | Public plugin interfaces plus consumer helpers                           |
-| `interfaces/cs2kz/`       | cs2kz's public interface, vendored as is under its own AGPL-3.0 LICENSE  |
-| `interfaces/sql_mm/`      | sql_mm's public interface (GPL-3.0), vendored as is                      |
+Dependencies point one way: `utils` never includes `sdk` or `game`, `sdk` never includes `game`.
+
+### `utils/`
+
+Game-agnostic helpers.
+
+| Path                        | What                                                                   |
+| --------------------------- | ---------------------------------------------------------------------- |
+| `utils/kv_parser.h`         | Minimal Valve KeyValues1 tokenizer/parser (`kv::LoadFile`)             |
+| `utils/str.h`               | `str::ToLower`, `str::ToLowerInPlace`, `str::Trim`, `str::StripPort`   |
+| `utils/json.h`              | `json::Escape`, `json::GetString`                                      |
+| `utils/steamid.h`           | SteamID64 <-> STEAM_0:X:Y auth id conversion                           |
+| `utils/maplist.h`           | maplist.txt line parser                                                |
+| `utils/chat_command.h`      | Say-quote strip + prefix/command/arg parser                            |
+| `utils/command_args.h`      | cs2kz-style `key=value` command args, `mmu::ParseArgs`, number parsing |
+| `utils/chat_colors.h/.cpp`  | `CHAT_COLOR_*` macros, `mmu::ResolveColorTags`                         |
+| `utils/translations.h/.cpp` | `mmu::Translations`, SourceMod-style phrase tables                     |
+| `utils/http_client.h/.cpp`  | Async HTTP(S) GET/POST worker + main-thread queue                      |
+| `utils/discord.h`           | Discord webhook send                                                   |
+| `utils/log.h/.cpp`          | Engine logging channel + `MMU_LOG_*` macros + file mirroring           |
+| `utils/sql.h/.cpp`          | `mmu::sql::Connection`, sql_mm connect/query/escape helpers            |
+| `utils/config_blocks.h`     | Shared `[Database]` and log config blocks                              |
+
+### `sdk/`
+
+Engine types and memory access.
+
+| Path                     | What                                                                     |
+| ------------------------ | ------------------------------------------------------------------------ |
+| `sdk/plugin_globals.h`   | Shared engine + Metamod interface globals + `MMU_GET_CORE_INTERFACES`    |
+| `sdk/schema.h/.cpp`      | Schema offset resolver, `DECLARE_SCHEMA_CLASS`, `SCHEMA_FIELD`           |
+| `sdk/sigscan.h/.cpp`     | `sig::` module range/section, KHook-backed sig scan, vtable by RTTI      |
+| `sdk/gamedata.h/.cpp`    | `mmu::GameData` KV1 offsets loader + shared `mmu::gamedata` offsets/sigs |
+| `sdk/gamesystem.h/.cpp`  | Engine game system factory list resolve + `FindByName`                   |
+| `sdk/server_client.h`    | `CServerSideClient` vtable resolve, hook indices, slot offset            |
+| `sdk/recipient_filter.h` | `CSingleRecipientFilter`, `CMultiRecipientFilter`                        |
+| `sdk/entity/*.h`         | Entity wrappers, button masks, `mmu::EntitySystem`                       |
+
+### `game/`
+
+Player-facing behavior built on `sdk`.
+
+| Path                      | What                                                                 |
+| ------------------------- | -------------------------------------------------------------------- |
+| `game/print.h/.cpp`       | Chat/console send primitives + `mmu::ChatPrinter` + `MMU_PRINT_*_FN` |
+| `game/cvarquery.h/.cpp`   | Client convar queries + per client `cl_language` / OS                |
+| `game/voice_block.h/.cpp` | Drop a client's voice packets on arrival, e.g. for mutes             |
+| `game/target.h`           | `mmu::FindTargets`, @groups/#slot/SteamID/name player targeting      |
+| `game/workshop.h/.cpp`    | Workshop registry checks, stale-ACF pruning, `PendingDownload`       |
+| `game/player_table.h`     | `mmu::PlayerTable<T>`, bounds-checked per-slot storage               |
+
+### `interfaces/`
+
+| Path                                 | What                                                                    |
+| ------------------------------------ | ----------------------------------------------------------------------- |
+| `interfaces/interface_bridge.h`      | `mmu::InterfaceBridge<T>`, cached cross-plugin interface pointer        |
+| `interfaces/<plugin>/*.h`            | Public plugin interfaces plus consumer helpers                          |
+| `interfaces/cs2admin/admin_access.h` | `mmu::AdminAccess`, mm-cs2admin permission checks for consumers         |
+| `interfaces/cs2kz/`                  | cs2kz's public interface, vendored as is under its own AGPL-3.0 LICENSE |
+| `interfaces/sql_mm/`                 | sql_mm's public interface (GPL-3.0), vendored as is                     |
 
 ## Usage
 
@@ -61,16 +87,16 @@ os.path.join(builder.sourcePath, "vendor", "mm-utils"),
 AMBuilder, in `binary.sources`:
 
 ```python
-"vendor/mm-utils/mmu/chat_colors.cpp",
-"vendor/mm-utils/mmu/log.cpp",
-"vendor/mm-utils/mmu/schema.cpp",
-"vendor/mm-utils/mmu/sql.cpp",
-"vendor/mm-utils/mmu/translations.cpp",
+"vendor/mm-utils/utils/chat_colors.cpp",
+"vendor/mm-utils/utils/log.cpp",
+"vendor/mm-utils/sdk/schema.cpp",
+"vendor/mm-utils/utils/sql.cpp",
+"vendor/mm-utils/utils/translations.cpp",
 ```
 
 Include as:
 
 ```cpp
-#include "mmu/kv_parser.h"
-#include "mmu/entity/ccsplayercontroller.h"
+#include "utils/kv_parser.h"
+#include "sdk/entity/ccsplayercontroller.h"
 ```
