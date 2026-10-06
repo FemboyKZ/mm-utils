@@ -2,7 +2,7 @@
 
 Shared utility code for Metamod:Source plugins.
 
-Vendor into plugin as a git submodule at `vendor/mm-utils`.
+Add to a plugin as a git submodule at `mm-utils`.
 
 There is no standalone build.
 Consumers compile the `.cpp` files as part of their own binary and add this repo's root to their include path.
@@ -75,23 +75,23 @@ Player-facing behavior built on `sdk`.
 Add the submodule:
 
 ```sh
-git submodule add https://github.com/FemboyKZ/mm-utils vendor/mm-utils
+git submodule add https://github.com/FemboyKZ/mm-utils mm-utils
 ```
 
 AMBuildScript, in `additionalIncludes`:
 
 ```python
-os.path.join(builder.sourcePath, "vendor", "mm-utils"),
+os.path.join(builder.sourcePath, "mm-utils"),
 ```
 
 AMBuilder, in `binary.sources`:
 
 ```python
-"vendor/mm-utils/utils/chat_colors.cpp",
-"vendor/mm-utils/utils/log.cpp",
-"vendor/mm-utils/sdk/schema.cpp",
-"vendor/mm-utils/utils/sql.cpp",
-"vendor/mm-utils/utils/translations.cpp",
+"mm-utils/utils/chat_colors.cpp",
+"mm-utils/utils/log.cpp",
+"mm-utils/sdk/schema.cpp",
+"mm-utils/utils/sql.cpp",
+"mm-utils/utils/translations.cpp",
 ```
 
 Include as:
