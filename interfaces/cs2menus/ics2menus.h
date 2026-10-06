@@ -274,6 +274,7 @@ enum class MenuTone : int
 // SetMenuTextFeatures bits.
 constexpr int kMenuTextConfirm = 1; // ShowMenuConfirm and the unsaved changes question
 constexpr int kMenuTextPinned = 2;  // chat: the pinned and secondary item on every page
+constexpr int kMenuTextIndex = 4;   // a long sorted list opens on its letter ranges ("A - D")
 
 // SetItemTeams and SetMenuScope bits.
 constexpr int kMenuTeamT = 1;
