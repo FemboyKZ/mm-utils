@@ -42,13 +42,6 @@ namespace mmu
 		inline constexpr int kWeaponServicesDropWeaponIndex = 29;
 #endif
 
-		// CBaseGameSystemFactory::sm_pFirst, RIP-relative mov with disp at +3. Key "IGameSystem_InitAllSystems_pFirst".
-#ifdef _WIN32
-		inline constexpr const char *kGameSystemFactorySig = "48 8B 1D ? ? ? ? 48 85 DB 0F 84 ? ? ? ? BD";
-#else
-		inline constexpr const char *kGameSystemFactorySig = "4C 8B 35 ? ? ? ? 4D 85 F6 75 ? E9";
-#endif
-
 		// IGameEventManager2 instance, RIP-relative lea with disp at +3. Key "GameEventManager".
 #ifdef _WIN32
 		// lea rcx, [rip+x] / mov rax, [r8+rdi]

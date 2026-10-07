@@ -34,6 +34,27 @@ namespace
 		}
 		return nullptr;
 	}
+
+	// Looks through the pointer-aligned slots of [base, base+size) for `value`, keeping the hit in `found`.
+	// False once a second one turns up.
+	bool FindSinglePointer(const uint8_t *base, size_t size, const void *value, const uint8_t *&found)
+	{
+		const uintptr_t align = sizeof(void *) - 1;
+		const uintptr_t end = reinterpret_cast<uintptr_t>(base) + size;
+		for (uintptr_t slot = (reinterpret_cast<uintptr_t>(base) + align) & ~align; slot + sizeof(void *) <= end; slot += sizeof(void *))
+		{
+			if (*reinterpret_cast<const void *const *>(slot) != value)
+			{
+				continue;
+			}
+			if (found)
+			{
+				return false;
+			}
+			found = reinterpret_cast<const uint8_t *>(slot);
+		}
+		return true;
+	}
 } // namespace
 
 namespace sig
@@ -152,6 +173,43 @@ namespace sig
 			}
 		}
 		return nullptr;
+	}
+
+	void *FindObjectByVTable(const void *knownAddress, const void *vtable)
+	{
+		HMODULE hModule = nullptr;
+		if (!vtable
+			|| !GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+								   static_cast<LPCSTR>(knownAddress), &hModule)
+			|| !hModule)
+		{
+			return nullptr;
+		}
+
+		auto *base = reinterpret_cast<uint8_t *>(hModule);
+		auto *dos = reinterpret_cast<IMAGE_DOS_HEADER *>(base);
+		if (dos->e_magic != IMAGE_DOS_SIGNATURE)
+		{
+			return nullptr;
+		}
+		auto *nt = reinterpret_cast<IMAGE_NT_HEADERS *>(base + dos->e_lfanew);
+		if (nt->Signature != IMAGE_NT_SIGNATURE)
+		{
+			return nullptr;
+		}
+
+		const uint8_t *found = nullptr;
+		IMAGE_SECTION_HEADER *sections = IMAGE_FIRST_SECTION(nt);
+		for (int i = 0; i < nt->FileHeader.NumberOfSections; i++)
+		{
+			// The virtual size, since zero-initialised statics sit past the section's raw data.
+			if ((sections[i].Characteristics & IMAGE_SCN_MEM_WRITE)
+				&& !FindSinglePointer(base + sections[i].VirtualAddress, sections[i].Misc.VirtualSize, vtable, found))
+			{
+				return nullptr;
+			}
+		}
+		return const_cast<uint8_t *>(found);
 	}
 #else
 	bool GetModuleRange(const void *knownAddress, void *&outBase, size_t &outSize)
@@ -279,6 +337,31 @@ namespace sig
 			}
 		}
 		return nullptr;
+	}
+
+	void *FindObjectByVTable(const void *knownAddress, const void *vtable)
+	{
+		Dl_info dlInfo {};
+		if (!vtable || !dladdr(knownAddress, &dlInfo) || !dlInfo.dli_fbase)
+		{
+			return nullptr;
+		}
+
+		auto *loadBase = static_cast<const uint8_t *>(dlInfo.dli_fbase);
+		const ElfW(Ehdr) *ehdr = reinterpret_cast<const ElfW(Ehdr) *>(loadBase);
+		const auto *phdr = reinterpret_cast<const ElfW(Phdr) *>(loadBase + ehdr->e_phoff);
+
+		const uint8_t *found = nullptr;
+		for (int i = 0; i < ehdr->e_phnum; i++)
+		{
+			// The memory size, since .bss has no bytes in the file.
+			if (phdr[i].p_type == PT_LOAD && (phdr[i].p_flags & PF_W)
+				&& !FindSinglePointer(loadBase + phdr[i].p_vaddr, phdr[i].p_memsz, vtable, found))
+			{
+				return nullptr;
+			}
+		}
+		return const_cast<uint8_t *>(found);
 	}
 #endif
 } // namespace sig

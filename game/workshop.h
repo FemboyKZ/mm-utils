@@ -12,32 +12,34 @@ namespace mmu
 	namespace workshop
 	{
 		// Engine-native workshop registry, the CDedicatedServerWorkshopManager game system.
-		// Requires mmu::gamesystem::Resolve to have succeeded.
-		// Resolution is lazy and cached, every query below attempts it first.
+		// Found through its RTTI in g_pServerGameDLL's module, lazily and once. Every query below attempts it first.
 		bool ResolveManager();
-		bool ManagerReady();
-
-		// True when the engine's own registry lists the workshop map as loaded/mounted.
-		bool IsMapInstalled(uint64_t fileId);
 
 		// All workshop file ids the engine currently lists as loaded.
 		std::vector<uint64_t> InstalledMapIds();
 
 		// True only when the addon's .vpk is actually on disk.
 		// Neither Steam's state nor the engine registry is consulted, since both outlive deleted files.
-		bool IsReady(uint64_t fileId, CSteamGameServerAPIContext &steamAPI);
+		bool IsReady(uint64_t fileId);
 
 		// True once a download started by StartDownload has landed.
 		// Trusts Steam's state as well as disk, which IsReady deliberately does not.
+		// Never true while Steam still reports a transfer for the addon.
 		bool DownloadSettled(uint64_t fileId, CSteamGameServerAPIContext &steamAPI);
 
 		// Asks Steam to fetch the addon. Completion shows up through DownloadSettled.
+		// False when Steam still calls a fileless addon installed, since that download would fetch nothing.
 		bool StartDownload(uint64_t fileId, CSteamGameServerAPIContext &steamAPI);
 
 		// Bytes of an in-flight download. False when Steam reports no transfer.
 		bool DownloadProgress(uint64_t fileId, CSteamGameServerAPIContext &steamAPI, uint64_t &done, uint64_t &total);
 
-		// Wait-for-download state for a workshop map change. Messaging stays with the caller.
+		// True while the engine is still querying, downloading or installing the addon for host_workshop_map.
+		// The engine drops the request in the frame it finishes, successfully or not.
+		bool IsRequestPending(uint64_t fileId);
+
+		// A workshop map change, from looking the addon up to the engine taking over. Messaging stays with the caller.
+		// Times run on the real clock, since curtime stands still on a hibernating server.
 		class PendingDownload
 		{
 		public:
@@ -45,56 +47,32 @@ namespace mmu
 			{
 				Idle,
 				Waiting,
-				Announce, // still waiting, progress interval elapsed
-				Settled,  // downloaded, change map now
-				TimedOut,
+				Started,        // Steam confirmed a CS2 map and the download began
+				Announce,       // still waiting, progress interval elapsed
+				Settled,        // downloaded, change map now
+				TimedOut,       // lookup or download still unfinished at the deadline
+				Rejected,       // Steam does not know the id, or it is not a CS2 map
+				StartFailed,    // no download could be started
+				DownloadFailed, // Steam reported the download as failed
+				ChangeFailed,   // the map never changed after a watched host_workshop_map
 			};
 
-			// Returns false and arms nothing when timeoutSecs <= 0.
-			bool Begin(uint64_t fileId, float timeoutSecs, float now, float announceInterval = 10.0f)
-			{
-				if (timeoutSecs <= 0.0f)
-				{
-					return false;
-				}
-				m_active = true;
-				m_fileId = fileId;
-				m_deadline = now + timeoutSecs;
-				m_announceInterval = announceInterval;
-				m_nextAnnounce = now + announceInterval;
-				return true;
-			}
+			// Asks Steam what the addon is. The download starts from Poll once the answer says CS2 map.
+			// Returns false and arms nothing when timeoutSecs <= 0 or the question could not be sent.
+			bool Begin(uint64_t fileId, float timeoutSecs, CSteamGameServerAPIContext &steamAPI, float announceInterval = 10.0f);
 
-			// Settled and TimedOut clear the state, so each is returned once.
-			Status Poll(float now, CSteamGameServerAPIContext &steamAPI)
-			{
-				if (!m_active)
-				{
-					return Status::Idle;
-				}
-				if (DownloadSettled(m_fileId, steamAPI))
-				{
-					Clear();
-					return Status::Settled;
-				}
-				if (now >= m_deadline)
-				{
-					Clear();
-					return Status::TimedOut;
-				}
-				if (now >= m_nextAnnounce)
-				{
-					m_nextAnnounce = now + m_announceInterval;
-					return Status::Announce;
-				}
-				return Status::Waiting;
-			}
+			// Call right after issuing host_workshop_map, does nothing when the engine's workshop manager is out of reach.
+			// Poll then announces while the engine fetches an update of its own, and returns ChangeFailed if the map never changes.
+			void WatchEngine(uint64_t fileId, float announceInterval = 10.0f);
+
+			// Waiting, Started and Announce keep the state. Every other status clears it, so each is returned once.
+			Status Poll(CSteamGameServerAPIContext &steamAPI);
 
 			// False when Steam reports no transfer.
 			bool Percent(CSteamGameServerAPIContext &steamAPI, int &outPercent) const
 			{
 				uint64_t done = 0, total = 0;
-				if (!m_active || !DownloadProgress(m_fileId, steamAPI, done, total) || total == 0)
+				if (m_phase == Phase::Idle || !DownloadProgress(m_fileId, steamAPI, done, total) || total == 0)
 				{
 					return false;
 				}
@@ -102,22 +80,52 @@ namespace mmu
 				return true;
 			}
 
+			// The addon's workshop title, known from Started on.
+			const std::string &Title() const
+			{
+				return m_title;
+			}
+
+			// True while the change still waits on the lookup or the download.
 			bool Active() const
 			{
-				return m_active;
+				return m_phase == Phase::Querying || m_phase == Phase::Downloading;
 			}
 
-			void Clear()
+			// Active, or watching the engine after the change was issued.
+			bool Busy() const
 			{
-				m_active = false;
-				m_fileId = 0;
+				return m_phase != Phase::Idle;
 			}
+
+			// Also takes the map off wscleaner's exclude list, so call it on level init even after Poll reported Settled.
+			void Clear();
 
 		private:
-			bool m_active = false;
+			enum class Phase
+			{
+				Idle,
+				Querying,
+				Downloading,
+				Hosting,
+			};
+
+			void ReleaseQuery();
+			void ResetState();
+
+			// A failed download ends the wait at once instead of running out the timeout.
+			STEAM_GAMESERVER_CALLBACK_MANUAL(PendingDownload, OnDownloadResult, DownloadItemResult_t, m_downloadResult);
+			bool m_downloadFailed = false;
+
+			Phase m_phase = Phase::Idle;
 			uint64_t m_fileId = 0;
-			float m_deadline = 0.0f;
-			float m_nextAnnounce = 0.0f;
+			uint64_t m_cleanerExcluded = 0;
+			std::string m_title;
+			ISteamUGC *m_pQueryUGC = nullptr;
+			UGCQueryHandle_t m_hQuery = k_UGCQueryHandleInvalid;
+			SteamAPICall_t m_hCall = k_uAPICallInvalid;
+			double m_deadline = 0.0;
+			double m_nextAnnounce = 0.0;
 			float m_announceInterval = 10.0f;
 		};
 
@@ -127,6 +135,7 @@ namespace mmu
 	// Otherwise, if the addon has no .vpk on disk, prune its stale ACF entry
 	// (WorkshopItemsInstalled + WorkshopItemDetails in appworkshop_730.acf)
 	// so Steam re-downloads it, then ask SteamUGC to re-read the file.
+	// The engine's record of the map and any leftover addon folder are dropped with it.
 	// `steamAPI` is the plugin's game-server API context, used for the re-read.
 	// Returns true if a stale entry was pruned.
 	bool EnsureWorkshopMapReady(const std::string &workshopId, CSteamGameServerAPIContext &steamAPI);

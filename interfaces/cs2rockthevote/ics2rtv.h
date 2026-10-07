@@ -6,10 +6,10 @@
 // Other Metamod plugins can acquire this interface via:
 //   ICS2RTV *rtv = (ICS2RTV *)g_SMAPI->MetaFactory(
 //       CS2RTV_INTERFACE, nullptr, nullptr);
-#define CS2RTV_INTERFACE "ICS2RTV001"
+#define CS2RTV_INTERFACE "ICS2RTV002"
 
-// Public read-only interface for CS2RockTheVote.
-// Provides vote/map-change status and access to the loaded map list.
+// Public interface for CS2RockTheVote.
+// Provides vote/map-change status and access to the loaded map list. Read-only apart from CancelVote.
 //
 // const char* returns point at cs2rockthevote's internal storage and are valid
 // until the next map load / maplist reload.
@@ -63,6 +63,10 @@ public:
 	// The label !nominate shows for `index`, KZ tiers in chat colors. disabled greys the text after the tiers.
 	// Valid until the next call.
 	virtual const char *GetMapMenuLabel(int index, bool disabled) = 0;
+
+	// Cancels a running vote or a scheduled map change, for a caller whose own map change outranks it.
+	// The map keeps running and players are told. Does nothing when neither is under way.
+	virtual void CancelVote() = 0;
 };
 
 #endif // _INCLUDE_ICS2RTV_H_

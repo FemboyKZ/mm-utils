@@ -63,6 +63,10 @@ namespace sig
 	// Only finds primary vtables (base offset 0) of classes the compiler emitted RTTI for.
 	void *FindVirtualTable(const void *knownAddress, const char *className);
 
+	// The one object in the module's writable data whose vtable pointer is `vtable`, as FindVirtualTable returns it.
+	// Null unless exactly one is found, so only good for a class with a single static instance.
+	void *FindObjectByVTable(const void *knownAddress, const void *vtable);
+
 	// Resolve a RIP-relative MOV/LEA whose displacement begins 3 bytes into the instruction (REX + opcode + ModRM), e.g. `48 8D 0D <disp32>`.
 	// Returns the address the instruction computes: nextInsn + signed disp32.
 	inline void *ResolveRipRelative(void *instruction)

@@ -40,9 +40,8 @@ Engine types and memory access.
 | ------------------------ | ------------------------------------------------------------------------ |
 | `sdk/plugin_globals.h`   | Shared engine + Metamod interface globals + `MMU_GET_CORE_INTERFACES`    |
 | `sdk/schema.h/.cpp`      | Schema offset resolver, `DECLARE_SCHEMA_CLASS`, `SCHEMA_FIELD`           |
-| `sdk/sigscan.h/.cpp`     | `sig::` module range/section, KHook-backed sig scan, vtable by RTTI      |
+| `sdk/sigscan.h/.cpp`     | `sig::` module range/section, KHook-backed sig scan, RTTI vtable/object  |
 | `sdk/gamedata.h/.cpp`    | `mmu::GameData` KV1 offsets loader + shared `mmu::gamedata` offsets/sigs |
-| `sdk/gamesystem.h/.cpp`  | Engine game system factory list resolve + `FindByName`                   |
 | `sdk/server_client.h`    | `CServerSideClient` vtable resolve, hook indices, slot offset            |
 | `sdk/recipient_filter.h` | `CSingleRecipientFilter`, `CMultiRecipientFilter`                        |
 | `sdk/entity/*.h`         | Entity wrappers, button masks, `mmu::EntitySystem`                       |
