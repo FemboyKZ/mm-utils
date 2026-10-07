@@ -369,8 +369,10 @@ namespace mmu
 			return;
 		}
 
+		char stripped[512];
+		StripChatColors(buffer, stripped, sizeof(stripped));
 		char consoleBuffer[512];
-		snprintf(consoleBuffer, sizeof(consoleBuffer), "[%s] %s", m_setup.conTag ? m_setup.conTag : "", buffer);
+		snprintf(consoleBuffer, sizeof(consoleBuffer), "[%s] %s\n", m_setup.conTag ? m_setup.conTag : "", stripped);
 		SendConsoleToSlot(slot, consoleBuffer);
 
 		SendPrefixedToSlot(slot, buffer, true);
@@ -392,8 +394,10 @@ namespace mmu
 			return;
 		}
 
+		char stripped[512];
+		StripChatColors(buffer, stripped, sizeof(stripped));
 		char consoleBuffer[512];
-		snprintf(consoleBuffer, sizeof(consoleBuffer), "[%s] %s", m_setup.conTag ? m_setup.conTag : "", buffer);
+		snprintf(consoleBuffer, sizeof(consoleBuffer), "[%s] %s\n", m_setup.conTag ? m_setup.conTag : "", stripped);
 		SendConsoleToSlot(slot, consoleBuffer);
 
 		SendPrefixedToSlot(slot, buffer, true);
