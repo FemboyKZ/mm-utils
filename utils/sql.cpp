@@ -267,12 +267,18 @@ namespace mmu
 
 		void Connection::QueryFmt(std::function<void(ISQLQuery *)> cb, const char *fmt, ...)
 		{
-			char buffer[4096];
 			va_list args;
 			va_start(args, fmt);
-			vsnprintf(buffer, sizeof(buffer), fmt, args);
+			va_list sizing;
+			va_copy(sizing, args);
+			const int length = vsnprintf(nullptr, 0, fmt, sizing);
+			va_end(sizing);
+
+			// Sized to fit: a query cut short would still be sent.
+			std::string query(length > 0 ? length : 0, '\0');
+			vsnprintf(query.data(), query.size() + 1, fmt, args);
 			va_end(args);
-			Query(buffer, cb);
+			Query(query.c_str(), cb);
 		}
 
 		std::string Connection::Escape(const char *str)
