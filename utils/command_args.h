@@ -7,6 +7,7 @@
 #include <cctype>
 #include <cerrno>
 #include <climits>
+#include <cmath>
 #include <cstdlib>
 #include <map>
 #include <string>
@@ -240,7 +241,8 @@ namespace mmu
 		std::replace(text.begin(), text.end(), ',', '.');
 		char *end = nullptr;
 		value = std::strtod(text.c_str(), &end);
-		return *end == '\0';
+		// strtod reads "nan" and "inf" too, and std::clamp lets a NaN through.
+		return *end == '\0' && std::isfinite(value);
 	}
 } // namespace mmu
 
