@@ -3,6 +3,8 @@
 
 // Minimal Valve KeyValues1 tokenizer and section parser.
 
+#include "utils/log.h"
+
 #include <fstream>
 #include <istream>
 #include <string>
@@ -10,6 +12,28 @@
 
 namespace kv
 {
+
+	// Kept in the stream itself, so a warning can name a line without the callers passing a counter.
+	inline long &LinesRead(std::istream &in)
+	{
+		static const int index = std::ios_base::xalloc();
+		return in.iword(index);
+	}
+
+	inline int LineNumber(std::istream &in)
+	{
+		return static_cast<int>(LinesRead(in)) + 1;
+	}
+
+	inline int NextChar(std::istream &in)
+	{
+		int ch = in.get();
+		if (ch == '\n')
+		{
+			LinesRead(in)++;
+		}
+		return ch;
+	}
 
 	enum class TokenType
 	{
@@ -30,7 +54,7 @@ namespace kv
 		Token tok;
 		while (in.good())
 		{
-			int ch = in.get();
+			int ch = NextChar(in);
 			if (ch == EOF)
 			{
 				tok.kind = TokenType::EndOfFile;
@@ -47,7 +71,7 @@ namespace kv
 				int next = in.peek();
 				if (next == '/')
 				{
-					while (in.good() && in.get() != '\n')
+					while (in.good() && NextChar(in) != '\n')
 						;
 					continue;
 				}
@@ -58,7 +82,7 @@ namespace kv
 					int prev = 0;
 					while (in.good())
 					{
-						int c = in.get();
+						int c = NextChar(in);
 						if (c == EOF || (prev == '*' && c == '/'))
 						{
 							break;
@@ -84,16 +108,23 @@ namespace kv
 			{
 				tok.kind = TokenType::String;
 				tok.value.clear();
+				const int opened = LineNumber(in);
+				bool closed = false;
 				while (in.good())
 				{
-					ch = in.get();
-					if (ch == '"' || ch == EOF)
+					ch = NextChar(in);
+					if (ch == '"')
+					{
+						closed = true;
+						break;
+					}
+					if (ch == EOF)
 					{
 						break;
 					}
 					if (ch == '\\')
 					{
-						int esc = in.get();
+						int esc = NextChar(in);
 						if (esc == '"')
 						{
 							tok.value += '"';
@@ -110,7 +141,7 @@ namespace kv
 						{
 							tok.value += '\t';
 						}
-						else
+						else if (esc != EOF)
 						{
 							tok.value += '\\';
 							tok.value += static_cast<char>(esc);
@@ -120,6 +151,10 @@ namespace kv
 					{
 						tok.value += static_cast<char>(ch);
 					}
+				}
+				if (!closed)
+				{
+					MMU_LOG_WARN("Config: the quote opened on line %d is never closed, the rest of the file was read as its text.\n", opened);
 				}
 				return tok;
 			}
@@ -145,32 +180,57 @@ namespace kv
 
 	typedef void (*Handler)(const std::string &section, const std::string &key, const std::string &value, void *userdata);
 
-	inline bool ParseSection(std::istream &in, const std::string &sectionName, Handler handler, void *userdata)
+	// `nested` is for its own recursion. False if the file ended before the closing brace.
+	inline bool ParseSection(std::istream &in, const std::string &sectionName, Handler handler, void *userdata, bool nested = false)
 	{
+		Token tok = NextToken(in);
 		while (true)
 		{
-			Token tok = NextToken(in);
-			if (tok.kind == TokenType::CloseBrace || tok.kind == TokenType::EndOfFile)
+			if (tok.kind == TokenType::EndOfFile)
 			{
+				MMU_LOG_WARN("Config: the file ends inside \"%s\", a } is missing.\n", sectionName.c_str());
+				return false;
+			}
+			if (tok.kind == TokenType::CloseBrace)
+			{
+				// Nothing past the root's brace is ever read, so a stray } drops the rest of the file.
+				const int closed = LineNumber(in);
+				if (!nested && NextToken(in).kind != TokenType::EndOfFile)
+				{
+					MMU_LOG_WARN("Config: \"%s\" is closed on line %d, what comes after it is not read.\n", sectionName.c_str(), closed);
+				}
 				return true;
 			}
 
 			if (tok.kind != TokenType::String)
 			{
+				tok = NextToken(in);
 				continue;
 			}
 
 			std::string key = tok.value;
+			const int line = LineNumber(in);
 			Token next = NextToken(in);
 
 			if (next.kind == TokenType::OpenBrace)
 			{
-				ParseSection(in, key, handler, userdata);
+				if (!ParseSection(in, key, handler, userdata, true))
+				{
+					return false;
+				}
 			}
 			else if (next.kind == TokenType::String)
 			{
 				handler(sectionName, key, next.value, userdata);
 			}
+			else
+			{
+				// `next` is this section's brace or the end of the file, handled as that.
+				MMU_LOG_WARN("Config: \"%s\" on line %d has no value.\n", key.c_str(), line);
+				tok = next;
+				continue;
+			}
+			tok = NextToken(in);
 		}
 	}
 
