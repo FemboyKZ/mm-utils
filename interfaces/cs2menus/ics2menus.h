@@ -1,9 +1,12 @@
 #ifndef _INCLUDE_ICS2MENUS_H_
 #define _INCLUDE_ICS2MENUS_H_
 
+#include <ISmmPlugin.h>
+
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <utility>
 
 // Public menu API for CS2Menus.
 //
@@ -22,7 +25,10 @@
 //  - DestroyMenu off-thread invalidates the handle at once but skips the Destroyed callback.
 //  - const char * getters alias internal storage, copy them, don't cache.
 //  - Don't block a main-thread callback on a worker that re-enters this API (lock is held -> deadlock).
-#define CS2MENUS_INTERFACE "ICS2Menus005"
+#define CS2MENUS_INTERFACE "ICS2Menus006"
+
+// The including plugin's own id, what its menus are owned by.
+extern PluginId g_PLID;
 
 // Opaque menu identifier returned by CreateMenu. 0 is the invalid sentinel.
 // A handle stays valid until DestroyMenu (or until cs2menus unloads).
@@ -358,7 +364,14 @@ public:
 	// `title` may contain chat color codes.
 	// `onSelect` is invoked when a player picks an item (may be null if you only care about MenuEnd).
 	// Returns kInvalidMenuHandle on failure.
-	virtual MenuHandle CreateMenu(MenuType type, const char *title, MenuItemSelectFn onSelect) = 0;
+	// The menu belongs to the calling plugin, see CreateMenuFor.
+	MenuHandle CreateMenu(MenuType type, const char *title, MenuItemSelectFn onSelect)
+	{
+		return CreateMenuFor(g_PLID, type, title, std::move(onSelect));
+	}
+
+	// CreateMenu as it was before menus had an owner. Clients built against an older interface call it by position.
+	virtual MenuHandle CreateMenuUnowned(MenuType type, const char *title, MenuItemSelectFn onSelect) = 0;
 
 	// Free a menu. Any player currently viewing it has their display closed (fires MenuEnd=Destroyed).
 	// The handle is invalid afterwards.
@@ -366,6 +379,8 @@ public:
 	// IMPORTANT: a menu's callbacks may capture pointers into YOUR plugin.
 	// Destroy every menu you created (and CancelMenu open displays) in your plugin's Unload()
 	// so cs2menus never calls a lambda inside an unloaded DLL.
+	// What a plugin leaves behind is only taken out of use, and leaked:
+	// once Metamod announces the unload its callbacks cannot even be destroyed. `meta clear` announces nothing.
 	virtual void DestroyMenu(MenuHandle menu) = 0;
 
 	// True if `menu` is a live handle (created and not yet destroyed).
@@ -746,7 +761,13 @@ public:
 	// A panorama box at the top of the screen that never takes the mouse. One per slot, apart from its menu.
 	// `seconds` counts down in it and then hides it, 0 keeps it until HideNotice. False without a window for it.
 	// `onMouse1` runs on Mouse1 with the scoreboard key held. Hide the notice in Unload(), it points into your plugin.
-	virtual bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1) = 0;
+	bool ShowNotice(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1)
+	{
+		return ShowNoticeFor(g_PLID, slot, title, text, hint, seconds, std::move(onMouse1));
+	}
+
+	// ShowNotice as it was, see CreateMenuUnowned.
+	virtual bool ShowNoticeUnowned(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1) = 0;
 	virtual void HideNotice(int slot) = 0;
 
 	// Table: a heading, a button with a callback. The first is over the items' text, each one after it over `cells` of their cells.
@@ -759,6 +780,14 @@ public:
 	virtual void SetItemCells(MenuHandle menu, int item, const char *const *cells, int count) = 0;
 	// Table: more than the row has room for. A button at its end lists the lines in the popup beside the window.
 	virtual void SetItemDetails(MenuHandle menu, int item, const char *const *lines, int count) = 0;
+
+	// ============================== Ownership ==============================
+
+	// What CreateMenu and ShowNotice call.
+	// When Metamod unloads `owner`, its menus go out of use and its notices are hidden, without a call into it.
+	virtual MenuHandle CreateMenuFor(PluginId owner, MenuType type, const char *title, MenuItemSelectFn onSelect) = 0;
+	virtual bool ShowNoticeFor(PluginId owner, int slot, const char *title, const char *text, const char *hint, float seconds,
+							   MenuNoticeFn onMouse1) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_
