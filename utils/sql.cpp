@@ -9,6 +9,7 @@
 
 #include <cstdarg>
 #include <cstdio>
+#include <cstring>
 
 // Provided by the consuming plugin.
 extern ISmmAPI *g_SMAPI;
@@ -17,6 +18,8 @@ namespace mmu
 {
 	namespace sql
 	{
+		constexpr double kRetrySeconds = 30.0;
+
 		Connection::~Connection()
 		{
 			Shutdown();
@@ -65,6 +68,22 @@ namespace mmu
 
 		void Connection::Connect(const ConnectParams &params, std::function<void(bool)> cb)
 		{
+			Open(params, std::move(cb), false);
+		}
+
+		void Connection::RunFrame(double now)
+		{
+			m_frameTime = now;
+			if (m_retryAt <= 0.0 || now < m_retryAt)
+			{
+				return;
+			}
+			// Copies, Open assigns to both members.
+			Open(ConnectParams(m_params), std::function<void(bool)>(m_connectCb), true);
+		}
+
+		void Connection::Open(const ConnectParams &params, std::function<void(bool)> cb, bool retry)
+		{
 			// A second Connect while one is in flight would orphan the pending connection.
 			if (m_connecting)
 			{
@@ -76,6 +95,9 @@ namespace mmu
 				return;
 			}
 
+			m_retryAt = 0.0;
+			m_connectCb = cb;
+
 			// Destroy the old connection before m_params is reassigned.
 			// MySQLConnectionInfo holds raw pointers into the m_params strings,
 			// so it must not outlive them.
@@ -84,6 +106,7 @@ namespace mmu
 				m_conn->Destroy();
 				m_conn = nullptr;
 				m_connected = false;
+				m_pending.clear();
 			}
 
 			m_params = params;
@@ -147,7 +170,7 @@ namespace mmu
 
 			m_connecting = true;
 			m_conn->Connect(
-				[this, cb](bool success)
+				[this, cb, retry](bool success)
 				{
 					m_connecting = false;
 					m_connected = success;
@@ -170,9 +193,15 @@ namespace mmu
 					}
 					else
 					{
-						MMU_LOG_WARN("Database connection failed.\n");
+						// Said once, sql_mm prints its own line for every attempt.
+						if (!retry)
+						{
+							MMU_LOG_WARN("Database connection failed.\n");
+						}
+						m_retryAt = m_frameTime + kRetrySeconds;
 					}
-					if (cb)
+					// The consumer already heard that it failed.
+					if (cb && (success || !retry))
 					{
 						cb(success);
 					}
@@ -187,6 +216,8 @@ namespace mmu
 				m_conn->Destroy();
 				m_conn = nullptr;
 			}
+			m_pending.clear();
+			m_retryAt = 0.0;
 			m_connected = false;
 			m_connecting = false;
 			m_initialized = false;
@@ -205,8 +236,33 @@ namespace mmu
 				}
 				return;
 			}
+			// sql_mm's const char * overload is printf-style and would read every % in the query, escaped player text included,
+			// as a format specifier. The char * one sends it as is, and copies it before returning.
+			char *sql = const_cast<char *>(query);
+
 			// sql_mm requires a valid callback, never pass a null std::function.
-			m_conn->Query(query, cb ? cb : [](ISQLQuery *) {});
+			if (!cb)
+			{
+				m_conn->Query(sql, [](ISQLQuery *) {});
+				return;
+			}
+
+			const uint64_t id = ++m_lastQueryId;
+			m_pending.push_back({id, std::move(cb)});
+			m_conn->Query(sql, [this, id](ISQLQuery *result) { Answer(id, result); });
+		}
+
+		void Connection::Answer(uint64_t id, ISQLQuery *result)
+		{
+			// sql_mm answers in the order queries were sent and skips one that failed,
+			// so whatever was sent before this one and is still waiting has failed.
+			// Checked again each round, a callback can send queries or drop the connection.
+			while (!m_pending.empty() && m_pending.front().id <= id)
+			{
+				PendingQuery pending = std::move(m_pending.front());
+				m_pending.pop_front();
+				pending.cb(pending.id == id ? result : nullptr);
+			}
 		}
 
 		void Connection::QueryFmt(std::function<void(ISQLQuery *)> cb, const char *fmt, ...)
@@ -221,11 +277,39 @@ namespace mmu
 
 		std::string Connection::Escape(const char *str)
 		{
-			if (!m_conn)
+			if (!str)
 			{
-				return str ? str : "";
+				str = "";
 			}
-			return m_conn->Escape(str);
+
+			if (m_conn && m_connected)
+			{
+				// sql_mm's SQLite escaper hands back its whole work buffer, a NUL and padding after the text.
+				// Left in, they cut a query built by appending short and fail AuthMatch.
+				std::string escaped = m_conn->Escape(str);
+				escaped.resize(strlen(escaped.c_str()));
+				return escaped;
+			}
+
+			// The driver's escaper needs a live connection.
+			// A doubled quote reads as a literal quote on both backends. MySQL also treats backslash as an escape, so it gets doubled there.
+			std::string out;
+			for (const char *p = str; *p; p++)
+			{
+				if (*p == '\'')
+				{
+					out += "''";
+				}
+				else if (*p == '\\' && IsMySQL())
+				{
+					out += "\\\\";
+				}
+				else
+				{
+					out += *p;
+				}
+			}
+			return out;
 		}
 
 		std::string AuthMatch(const char *column, const std::string &escapedSuffix)

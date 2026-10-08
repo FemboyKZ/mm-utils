@@ -1,6 +1,8 @@
 #ifndef _INCLUDE_MMU_SQL_H_
 #define _INCLUDE_MMU_SQL_H_
 
+#include <cstdint>
+#include <deque>
 #include <functional>
 #include <string>
 #include <utility>
@@ -58,7 +60,11 @@ namespace mmu
 			// cb fires on the main thread.
 			// No-op firing cb(false) if a connect is already in flight.
 			// Any previous connection is destroyed first.
+			// A connect that fails fires cb(false) once. RunFrame keeps trying after that, and fires cb(true) if a try gets through.
 			void Connect(const ConnectParams &params, std::function<void(bool)> cb);
+
+			// Call every frame to have a failed connect retried, `now` in seconds on any clock that only runs forward.
+			void RunFrame(double now);
 
 			// Destroy the connection and latch shutdown so in-flight callbacks bail.
 			void Shutdown();
@@ -109,16 +115,36 @@ namespace mmu
 				return m_conn;
 			}
 
-			// Run a query. cb(nullptr) if not connected. cb fires on the main thread.
+			// Run a query. cb(nullptr) if not connected or the query failed. cb fires on the main thread.
+			// sql_mm says nothing about a failed query, so its cb(nullptr) only comes once a later query answers.
 			void Query(const char *query, std::function<void(ISQLQuery *)> cb);
 
 			// printf-style query.
 			void QueryFmt(std::function<void(ISQLQuery *)> cb, const char *fmt, ...);
 
-			// Escape a string for SQL. Passthrough when not connected.
+			// Escape a string for SQL. Quotes are doubled by hand when not connected.
 			std::string Escape(const char *str);
 
 		private:
+			struct PendingQuery
+			{
+				uint64_t id;
+				std::function<void(ISQLQuery *)> cb;
+			};
+
+			void Open(const ConnectParams &params, std::function<void(bool)> cb, bool retry);
+			void Answer(uint64_t id, ISQLQuery *result);
+
+			// Queries with a callback that sql_mm has not answered yet, oldest first.
+			std::deque<PendingQuery> m_pending;
+			uint64_t m_lastQueryId = 0;
+
+			std::function<void(bool)> m_connectCb;
+			// RunFrame's last `now`, the connect callback has no clock of its own.
+			double m_frameTime = 0.0;
+			// 0 while no retry is due.
+			double m_retryAt = 0.0;
+
 			ISQLInterface *m_sql = nullptr;
 			IMySQLClient *m_mysql = nullptr;
 			ISQLiteClient *m_sqlite = nullptr;
