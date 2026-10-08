@@ -5,6 +5,7 @@
 #include "utils/sql.h"
 #include "utils/str.h"
 
+#include <cctype>
 #include <cstdlib>
 #include <string>
 
@@ -70,7 +71,20 @@ namespace mmu
 			}
 			else if (key == "prefix")
 			{
-				db.prefix = value;
+				// It goes into table names as is.
+				db.prefix.clear();
+				for (char c : value)
+				{
+					if (std::isalnum(static_cast<unsigned char>(c)) || c == '_')
+					{
+						db.prefix += c;
+					}
+				}
+				if (db.prefix != value)
+				{
+					MMU_LOG_WARN("Database prefix '%s' may only hold letters, digits and underscores, using '%s'.\n", value.c_str(),
+								 db.prefix.c_str());
+				}
 			}
 			else if (key == "path" || key == "db_path")
 			{
