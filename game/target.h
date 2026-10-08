@@ -48,6 +48,7 @@ namespace mmu
 	//   @me, and for Many: @all, @humans, @bots, @t, @ct, @spec, @alive, @dead (humans only) and @random (one human)
 	//   #slot, $steamid64, a bare slot number, STEAM_X:Y:Z, [U:1:X] or a SteamID64
 	//   &name for an exact name, else a name or a unique part of one, an exact name winning over parts
+	// A name two players share, or a number that is one player's slot and another's name, is refused.
 	inline TargetResult FindTargets(int caller, const std::string &pattern, const TargetLookup &lookup, TargetMode mode = TargetMode::One)
 	{
 		TargetResult result;
@@ -76,17 +77,16 @@ namespace mmu
 			}
 			return fail("No player with that SteamID is online.");
 		};
-		auto bySlot = [&](const char *digits)
+		auto slotOf = [&](const char *digits)
 		{
 			char *end = nullptr;
 			const long slot = std::strtol(digits, &end, 10);
 			TargetCandidate who;
 			if (end == digits || *end != '\0' || !connected(static_cast<int>(slot), who))
 			{
-				return false;
+				return -1;
 			}
-			result.slots.push_back(static_cast<int>(slot));
-			return true;
+			return static_cast<int>(slot);
 		};
 
 		const std::string pat = str::Trim(pattern);
@@ -164,7 +164,13 @@ namespace mmu
 
 		if (pat[0] == '#')
 		{
-			return bySlot(pat.c_str() + 1) ? result : fail("Player not found with that slot/userid.");
+			const int slot = slotOf(pat.c_str() + 1);
+			if (slot < 0)
+			{
+				return fail("Player not found with that slot/userid.");
+			}
+			result.slots.push_back(slot);
+			return result;
 		}
 
 		if (const uint64_t steamid64 = ParseSteamID64(pat))
@@ -172,13 +178,9 @@ namespace mmu
 			return bySteamID(steamid64);
 		}
 
-		if (bySlot(pat.c_str()))
-		{
-			return result;
-		}
-
 		const bool exactOnly = pat[0] == '&';
 		const std::string search = str::ToLower(exactOnly ? pat.substr(1) : pat);
+		std::vector<int> exact;
 		std::vector<int> parts;
 		TargetCandidate who;
 		for (int i = 0; i <= MAXPLAYERS; i++)
@@ -191,13 +193,35 @@ namespace mmu
 			const std::string name = str::ToLower(controller->GetPlayerName());
 			if (name == search)
 			{
-				result.slots.push_back(i);
-				return result;
+				exact.push_back(i);
 			}
-			if (!exactOnly && name.find(search) != std::string::npos)
+			else if (!exactOnly && name.find(search) != std::string::npos)
 			{
 				parts.push_back(i);
 			}
+		}
+
+		const int slot = exactOnly ? -1 : slotOf(pat.c_str());
+		if (slot >= 0)
+		{
+			for (int named : exact)
+			{
+				if (named != slot)
+				{
+					return fail("That number is a slot and also a player's name. Use #slot or &name.");
+				}
+			}
+			result.slots.push_back(slot);
+			return result;
+		}
+		if (exact.size() > 1)
+		{
+			return fail("Multiple players match that name. Be more specific.");
+		}
+		if (exact.size() == 1)
+		{
+			result.slots = exact;
+			return result;
 		}
 		if (exactOnly)
 		{
