@@ -25,14 +25,14 @@ namespace mmu
 		// True once a download started by StartDownload has landed.
 		// Trusts Steam's state as well as disk, which IsReady deliberately does not.
 		// Never true while Steam still reports a transfer for the addon.
-		bool DownloadSettled(uint64_t fileId, CSteamGameServerAPIContext &steamAPI);
+		bool DownloadSettled(uint64_t fileId);
 
 		// Asks Steam to fetch the addon. Completion shows up through DownloadSettled.
 		// False when Steam still calls a fileless addon installed, since that download would fetch nothing.
-		bool StartDownload(uint64_t fileId, CSteamGameServerAPIContext &steamAPI);
+		bool StartDownload(uint64_t fileId);
 
 		// Bytes of an in-flight download. False when Steam reports no transfer.
-		bool DownloadProgress(uint64_t fileId, CSteamGameServerAPIContext &steamAPI, uint64_t &done, uint64_t &total);
+		bool DownloadProgress(uint64_t fileId, uint64_t &done, uint64_t &total);
 
 		// True while the engine is still querying, downloading or installing the addon for host_workshop_map.
 		// The engine drops the request in the frame it finishes, successfully or not.
@@ -59,20 +59,20 @@ namespace mmu
 
 			// Asks Steam what the addon is. The download starts from Poll once the answer says CS2 map.
 			// Returns false and arms nothing when timeoutSecs <= 0 or the question could not be sent.
-			bool Begin(uint64_t fileId, float timeoutSecs, CSteamGameServerAPIContext &steamAPI, float announceInterval = 10.0f);
+			bool Begin(uint64_t fileId, float timeoutSecs, float announceInterval = 10.0f);
 
 			// Call right after issuing host_workshop_map, does nothing when the engine's workshop manager is out of reach.
 			// Poll then announces while the engine fetches an update of its own, and returns ChangeFailed if the map never changes.
 			void WatchEngine(uint64_t fileId, float announceInterval = 10.0f);
 
 			// Waiting, Started and Announce keep the state. Every other status clears it, so each is returned once.
-			Status Poll(CSteamGameServerAPIContext &steamAPI);
+			Status Poll();
 
 			// False when Steam reports no transfer.
-			bool Percent(CSteamGameServerAPIContext &steamAPI, int &outPercent) const
+			bool Percent(int &outPercent) const
 			{
 				uint64_t done = 0, total = 0;
-				if (m_phase == Phase::Idle || !DownloadProgress(m_fileId, steamAPI, done, total) || total == 0)
+				if (m_phase == Phase::Idle || !DownloadProgress(m_fileId, done, total) || total == 0)
 				{
 					return false;
 				}
@@ -136,9 +136,8 @@ namespace mmu
 	// (WorkshopItemsInstalled + WorkshopItemDetails in appworkshop_730.acf)
 	// so Steam re-downloads it, then ask SteamUGC to re-read the file.
 	// The engine's record of the map and any leftover addon folder are dropped with it.
-	// `steamAPI` is the plugin's game-server API context, used for the re-read.
 	// Returns true if a stale entry was pruned.
-	bool EnsureWorkshopMapReady(const std::string &workshopId, CSteamGameServerAPIContext &steamAPI);
+	bool EnsureWorkshopMapReady(const std::string &workshopId);
 } // namespace mmu
 
 #endif // _INCLUDE_MMU_WORKSHOP_H_

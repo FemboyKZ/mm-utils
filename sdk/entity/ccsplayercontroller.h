@@ -8,6 +8,7 @@
 #include <entity2/entityidentity.h>
 #include <entityhandle.h>
 #include <ehandle.h>
+#include <shareddefs.h> // CS_TEAM_*
 #include <tier1/utlsymbollarge.h>
 
 #include <cstring>
@@ -127,11 +128,5 @@ public:
 		return static_cast<CCSPlayerController *>(g_pEntitySystem->GetEntityInstance(CEntityIndex(slot + 1)));
 	}
 };
-
-// CS2 team constants
-constexpr int CS_TEAM_NONE = 0;
-constexpr int CS_TEAM_SPECTATOR = 1;
-constexpr int CS_TEAM_T = 2;
-constexpr int CS_TEAM_CT = 3;
 
 #endif // _INCLUDE_MMU_ENTITY_CCSPLAYERCONTROLLER_H_

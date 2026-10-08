@@ -212,7 +212,7 @@ namespace
 
 	// Clears every record of an addon that has no vpk on disk: the engine's, the leftover folder and Steam's.
 	// Returns true if Steam's ACF entry was pruned.
-	bool DropStaleAddon(const std::string &workshopId, CSteamGameServerAPIContext &steamAPI)
+	bool DropStaleAddon(const std::string &workshopId)
 	{
 		if (!g_pFullFileSystem)
 		{
@@ -245,7 +245,7 @@ namespace
 
 		// Steam refuses the reload below while its download job runs,
 		// and that job writes its own item list back over the ACF when it finishes.
-		ISteamUGC *pUGC = steamAPI.SteamUGC();
+		ISteamUGC *pUGC = SteamGameServerUGC();
 		if (pUGC && AnyDownloadInFlight(pACF, pUGC))
 		{
 			MMU_LOG_WARN("Workshop: a download is running, leaving the ACF entry for %s in place.\n", workshopId.c_str());
@@ -351,10 +351,10 @@ namespace mmu
 		// Only meaningful once StartDownload has been called for this id:
 		// the ACF was pruned and Steam re-asked, so its answer is fresh rather than inherited.
 		// Lets a wait finish even where the folder scan cannot see the content root.
-		bool DownloadSettled(uint64_t fileId, CSteamGameServerAPIContext &steamAPI)
+		bool DownloadSettled(uint64_t fileId)
 		{
 			// Installed stays set and a partial vpk can sit on disk while a transfer is still running.
-			uint32 state = steamAPI.SteamUGC() ? steamAPI.SteamUGC()->GetItemState(fileId) : 0;
+			uint32 state = SteamGameServerUGC() ? SteamGameServerUGC()->GetItemState(fileId) : 0;
 			if (state & kTransferStates)
 			{
 				return false;
@@ -362,36 +362,36 @@ namespace mmu
 			return IsReady(fileId) || (state & k_EItemStateInstalled) != 0;
 		}
 
-		bool StartDownload(uint64_t fileId, CSteamGameServerAPIContext &steamAPI)
+		bool StartDownload(uint64_t fileId)
 		{
-			if (fileId == 0 || !steamAPI.SteamUGC())
+			if (fileId == 0 || !SteamGameServerUGC())
 			{
 				return false;
 			}
 
 			// Installed with no files and no transfer means the ACF prune did not take, so DownloadItem would fetch nothing.
-			uint32 state = steamAPI.SteamUGC()->GetItemState(fileId);
+			uint32 state = SteamGameServerUGC()->GetItemState(fileId);
 			if ((state & k_EItemStateInstalled) && !(state & kTransferStates) && !IsReady(fileId))
 			{
 				MMU_LOG_WARN("Workshop: Steam still reports %llu as installed without files, not starting a download.\n",
 							 static_cast<unsigned long long>(fileId));
 				return false;
 			}
-			return steamAPI.SteamUGC()->DownloadItem(fileId, true);
+			return SteamGameServerUGC()->DownloadItem(fileId, true);
 		}
 
-		bool DownloadProgress(uint64_t fileId, CSteamGameServerAPIContext &steamAPI, uint64_t &done, uint64_t &total)
+		bool DownloadProgress(uint64_t fileId, uint64_t &done, uint64_t &total)
 		{
 			done = 0;
 			total = 0;
-			if (fileId == 0 || !steamAPI.SteamUGC())
+			if (fileId == 0 || !SteamGameServerUGC())
 			{
 				return false;
 			}
 
 			uint64 steamDone = 0;
 			uint64 steamTotal = 0;
-			if (!steamAPI.SteamUGC()->GetItemDownloadInfo(fileId, &steamDone, &steamTotal) || steamTotal == 0)
+			if (!SteamGameServerUGC()->GetItemDownloadInfo(fileId, &steamDone, &steamTotal) || steamTotal == 0)
 			{
 				return false;
 			}
@@ -401,9 +401,9 @@ namespace mmu
 			return true;
 		}
 
-		bool PendingDownload::Begin(uint64_t fileId, float timeoutSecs, CSteamGameServerAPIContext &steamAPI, float announceInterval)
+		bool PendingDownload::Begin(uint64_t fileId, float timeoutSecs, float announceInterval)
 		{
-			ISteamUGC *pUGC = steamAPI.SteamUGC();
+			ISteamUGC *pUGC = SteamGameServerUGC();
 			if (timeoutSecs <= 0.0f || fileId == 0 || !pUGC)
 			{
 				return false;
@@ -451,7 +451,7 @@ namespace mmu
 			m_nextAnnounce = now + announceInterval;
 		}
 
-		PendingDownload::Status PendingDownload::Poll(CSteamGameServerAPIContext &steamAPI)
+		PendingDownload::Status PendingDownload::Poll()
 		{
 			const double now = Plat_FloatTime();
 
@@ -462,7 +462,7 @@ namespace mmu
 
 				case Phase::Querying:
 				{
-					ISteamUtils *pUtils = steamAPI.SteamGameServerUtils();
+					ISteamUtils *pUtils = SteamGameServerUtils();
 					bool failed = false;
 					if (!pUtils || !pUtils->IsAPICallCompleted(m_hCall, &failed))
 					{
@@ -492,8 +492,8 @@ namespace mmu
 					}
 
 					// Without this Steam may still think a deleted map is installed and download nothing.
-					EnsureWorkshopMapReady(std::to_string(m_fileId), steamAPI);
-					if (!StartDownload(m_fileId, steamAPI))
+					EnsureWorkshopMapReady(std::to_string(m_fileId));
+					if (!StartDownload(m_fileId))
 					{
 						Clear();
 						return Status::StartFailed;
@@ -513,7 +513,7 @@ namespace mmu
 						Clear();
 						return Status::DownloadFailed;
 					}
-					if (DownloadSettled(m_fileId, steamAPI))
+					if (DownloadSettled(m_fileId))
 					{
 						// Not Clear, the exclusion has to outlast the caller's host_workshop_map.
 						ResetState();
@@ -592,7 +592,7 @@ namespace mmu
 
 	} // namespace workshop
 
-	bool EnsureWorkshopMapReady(const std::string &workshopId, CSteamGameServerAPIContext &steamAPI)
+	bool EnsureWorkshopMapReady(const std::string &workshopId)
 	{
 		if (workshopId.empty())
 		{
@@ -605,7 +605,7 @@ namespace mmu
 			return false; // already good
 		}
 
-		return DropStaleAddon(workshopId, steamAPI);
+		return DropStaleAddon(workshopId);
 	}
 
 } // namespace mmu

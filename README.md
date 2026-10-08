@@ -43,7 +43,6 @@ Engine types and memory access.
 | `sdk/sigscan.h/.cpp`     | `sig::` module range/section, KHook-backed sig scan, RTTI vtable/object  |
 | `sdk/gamedata.h/.cpp`    | `mmu::GameData` KV1 offsets loader + shared `mmu::gamedata` offsets/sigs |
 | `sdk/server_client.h`    | `CServerSideClient` vtable resolve, hook indices, slot offset            |
-| `sdk/recipient_filter.h` | `CSingleRecipientFilter`, `CMultiRecipientFilter`                        |
 | `sdk/entity/*.h`         | Entity wrappers, button masks, `mmu::EntitySystem`                       |
 
 ### `game/`

@@ -1,15 +1,14 @@
 #include "game/print.h"
 #include "utils/chat_colors.h"
-#include "sdk/recipient_filter.h"
 
 #include <ISmmPlugin.h>
 #include <iserver.h>
 
 #include <engine/igameeventsystem.h>
-#include <irecipientfilter.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/inetworkserializer.h>
 #include <networksystem/netmessage.h>
+#include <recipientfilter.h>
 #include <usermessages.pb.h>
 
 #include <cstdio>
@@ -59,7 +58,7 @@ namespace mmu
 	}
 
 	// Copy `src`'s recipients into `out`, dropping any slot the engine has no live net channel for.
-	static void KeepLiveRecipients(IRecipientFilter *src, CMultiRecipientFilter &out)
+	static void KeepLiveRecipients(IRecipientFilter *src, CRecipientFilter &out)
 	{
 		const CPlayerBitVec &bits = src->GetRecipients();
 		for (int slot = 0; slot < bits.GetNumBits(); slot++)
@@ -79,7 +78,8 @@ namespace mmu
 			return;
 		}
 
-		CMultiRecipientFilter live;
+		CRecipientFilter live;
+		live.MakeReliable();
 		KeepLiveRecipients(filter, live);
 
 		CNetMessage *pData = pNetMsg->AllocateMessage();
@@ -110,7 +110,8 @@ namespace mmu
 			return;
 		}
 
-		CMultiRecipientFilter live;
+		CRecipientFilter live;
+		live.MakeReliable();
 		KeepLiveRecipients(filter, live);
 
 		auto *pSayText2 = pData->ToPB<CUserMessageSayText2>();
@@ -130,7 +131,7 @@ namespace mmu
 		{
 			return;
 		}
-		CSingleRecipientFilter filter(slot);
+		CReliableSingleUserRecipientFilter filter(slot);
 		SendChatToFilter(&filter, text);
 	}
 
@@ -242,7 +243,8 @@ namespace mmu
 		char chatBuf[600];
 		ComposeChatLine(chatBuf, sizeof(chatBuf), buffer, addPrefix);
 
-		CMultiRecipientFilter filter;
+		CRecipientFilter filter;
+		filter.MakeReliable();
 		CGlobalVars *globals = GetGameGlobals();
 		if (globals)
 		{
@@ -299,7 +301,8 @@ namespace mmu
 		char chatBuf[600];
 		ComposeChatLine(chatBuf, sizeof(chatBuf), buffer, false);
 
-		CMultiRecipientFilter filter;
+		CRecipientFilter filter;
+		filter.MakeReliable();
 		int count = 0;
 		CGlobalVars *globals = GetGameGlobals();
 		if (globals)

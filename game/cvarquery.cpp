@@ -1,6 +1,5 @@
 #include "game/cvarquery.h"
 #include "utils/log.h"
-#include "sdk/recipient_filter.h"
 #include "sdk/server_client.h"
 
 #include <ISmmPlugin.h>
@@ -12,6 +11,7 @@
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/inetworkserializer.h>
 #include <networksystem/netmessage.h>
+#include <recipientfilter.h>
 
 #include <array>
 #include <cstdint>
@@ -129,7 +129,7 @@ namespace
 		msg->set_cookie(cookie);
 		msg->set_cvar_name(cvarName);
 
-		CSingleRecipientFilter filter(slot);
+		CReliableSingleUserRecipientFilter filter(slot);
 		g_pGameEventSystem->PostEventAbstract(-1, false, &filter, pNetMsg, pData, 0);
 		g_pNetworkMessages->DeallocateNetMessageAbstract(pNetMsg, pData);
 
