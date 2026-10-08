@@ -26,6 +26,12 @@ namespace mmu
 		{
 			msg = msg.substr(1, msg.size() - 2);
 		}
+		// CS2 sends a quote the player typed as U+200B.
+		static const std::string typedQuote = "\xE2\x80\x8B";
+		for (size_t pos = 0; (pos = msg.find(typedQuote, pos)) != std::string::npos; pos++)
+		{
+			msg.replace(pos, typedQuote.size(), "\"");
+		}
 		return msg;
 	}
 
