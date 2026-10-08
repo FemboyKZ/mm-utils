@@ -1,6 +1,6 @@
 // Minimal async HTTP(S) client.
 // Windows: WinHTTP. Linux: libcurl.
-// Requests are queued and dispatched on a single background worker thread.
+// Requests are queued and dispatched on a few background worker threads.
 
 #include "utils/http_client.h"
 
@@ -37,8 +37,15 @@ namespace
 		mmu::http::Callback callback;
 	};
 
+	constexpr size_t kMaxResponseBytes = 16u * 1024u * 1024u;
+
+	// With one, a slow host holds up every request queued behind it.
+	constexpr int kWorkers = 4;
+
 	std::string s_userAgent = "mm-utils/1.0";
-	std::thread s_worker;
+	std::thread s_workers[kWorkers];
+	// Held around each callback, they are written as if there were one worker.
+	std::mutex s_callbackMutex;
 	std::mutex s_mutex;
 	std::condition_variable s_cv;
 	std::queue<HttpRequest> s_queue;
@@ -46,12 +53,12 @@ namespace
 	std::atomic<bool> s_shutdown {false};
 
 	// In-flight cancellation state.
-	// The worker thread publishes its current per-platform handle so that Shutdown() can abort a blocking I/O call,
+	// Each worker thread publishes its current per-platform handle so that Shutdown() can abort a blocking I/O call,
 	// instead of waiting for the full HTTP timeout (up to ~30 s).
 #ifdef _WIN32
 	// Exchanged to nullptr by whoever owns the close (worker on normal completion, shutdown on cancel).
 	// Guarantees exactly one WinHttpCloseHandle() call.
-	std::atomic<HINTERNET> s_currentRequest {nullptr};
+	std::atomic<HINTERNET> s_currentRequest[kWorkers] {};
 #else
 	std::atomic<bool> s_cancelInFlight {false};
 #endif
@@ -63,7 +70,7 @@ namespace
 
 #ifdef _WIN32
 
-	bool PerformRequest(const HttpRequest &req, std::string &outBody)
+	bool PerformRequest(const HttpRequest &req, std::string &outBody, int worker)
 	{
 		const std::string &url = req.url;
 
@@ -132,7 +139,7 @@ namespace
 		}
 
 		// Publish the request handle so Shutdown() can abort us by closing it from another thread.
-		s_currentRequest.store(hRequest);
+		s_currentRequest[worker].store(hRequest);
 
 		// Set timeouts: resolve=5s, connect=5s, send=15s, receive=15s
 		DWORD t5s = 5000;
@@ -166,15 +173,21 @@ namespace
 			// Read body
 			std::string body;
 			DWORD avail = 0;
+			bool tooLarge = false;
 			while (WinHttpQueryDataAvailable(hRequest, &avail) && avail > 0)
 			{
+				if (body.size() + avail > kMaxResponseBytes)
+				{
+					tooLarge = true;
+					break;
+				}
 				std::string chunk(avail, '\0');
 				DWORD read = 0;
 				WinHttpReadData(hRequest, &chunk[0], avail, &read);
 				body.append(chunk.c_str(), read);
 			}
 
-			if (statusCode >= 200 && statusCode < 300)
+			if (!tooLarge && statusCode >= 200 && statusCode < 300)
 			{
 				outBody = std::move(body);
 				success = true;
@@ -186,7 +199,7 @@ namespace
 
 		// Try to take ownership of the request handle.
 		// If shutdown beat us to it, the handle is already closed and `owned` will be nullptr.
-		HINTERNET owned = s_currentRequest.exchange(nullptr);
+		HINTERNET owned = s_currentRequest[worker].exchange(nullptr);
 		if (owned)
 		{
 			WinHttpCloseHandle(owned);
@@ -204,6 +217,11 @@ namespace
 	size_t CurlWriteCb(char *ptr, size_t size, size_t nmemb, void *userdata)
 	{
 		auto *ctx = static_cast<CurlWriteCtx *>(userdata);
+		// Taking less than was offered aborts the transfer.
+		if (ctx->data.size() + size * nmemb > kMaxResponseBytes)
+		{
+			return 0;
+		}
 		ctx->data.append(ptr, size * nmemb);
 		return size * nmemb;
 	}
@@ -215,7 +233,7 @@ namespace
 		return s_cancelInFlight.load() ? 1 : 0;
 	}
 
-	bool PerformRequest(const HttpRequest &req, std::string &outBody)
+	bool PerformRequest(const HttpRequest &req, std::string &outBody, int /*worker*/)
 	{
 		CURL *curl = curl_easy_init();
 		if (!curl)
@@ -277,7 +295,7 @@ namespace
 
 #endif // Linux
 
-	void WorkerThread()
+	void WorkerThread(int worker)
 	{
 		while (s_running.load())
 		{
@@ -300,9 +318,10 @@ namespace
 			}
 
 			std::string body;
-			bool ok = PerformRequest(req, body);
+			bool ok = PerformRequest(req, body, worker);
 			if (req.callback)
 			{
+				std::lock_guard<std::mutex> lock(s_callbackMutex);
 				req.callback(ok, std::move(body));
 			}
 		}
@@ -316,7 +335,16 @@ namespace
 			return;
 		}
 		s_running.store(true);
-		s_worker = std::thread(WorkerThread);
+#ifndef _WIN32
+		// curl_easy_init would otherwise do this on a worker, and before libcurl 7.84 it is not thread-safe:
+		// every plugin built on this file has workers of its own on the one shared libcurl.
+		// Never cleaned up, the other plugins are still using it.
+		curl_global_init(CURL_GLOBAL_DEFAULT);
+#endif
+		for (int i = 0; i < kWorkers; i++)
+		{
+			s_workers[i] = std::thread(WorkerThread, i);
+		}
 	}
 
 	void Enqueue(HttpMethod method, const std::string &url, const std::string &body, mmu::http::Callback callback)
@@ -375,8 +403,9 @@ namespace mmu
 			s_cv.notify_all();
 
 #ifdef _WIN32
+			for (std::atomic<HINTERNET> &current : s_currentRequest)
 			{
-				HINTERNET owned = s_currentRequest.exchange(nullptr);
+				HINTERNET owned = current.exchange(nullptr);
 				if (owned)
 				{
 					// Closing the request handle from another thread causes any pending
@@ -388,9 +417,12 @@ namespace mmu
 			s_cancelInFlight.store(true);
 #endif
 
-			if (s_worker.joinable())
+			for (std::thread &worker : s_workers)
 			{
-				s_worker.join();
+				if (worker.joinable())
+				{
+					worker.join();
+				}
 			}
 
 #ifndef _WIN32

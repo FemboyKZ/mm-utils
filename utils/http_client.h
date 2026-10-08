@@ -3,7 +3,7 @@
 
 // Minimal async HTTP(S) GET/POST client.
 // Windows: WinHTTP. Linux: libcurl.
-// Requests are queued and dispatched on a single background worker thread.
+// Requests are queued and dispatched on a few background worker threads.
 
 #include <functional>
 #include <string>
@@ -15,6 +15,7 @@ namespace mmu
 		// Callback type: (success, responseBody)
 		// WARNING: callbacks are invoked on a background thread. Do NOT touch game state directly from them.
 		// Use QueueMainThread to schedule any work that needs to run on the game thread.
+		// One callback runs at a time, in the order requests finish, not the order they were sent.
 		using Callback = std::function<void(bool success, std::string body)>;
 
 		// User agent sent with every request. Set once at plugin load.
@@ -29,7 +30,7 @@ namespace mmu
 		// POST request with application/x-www-form-urlencoded body.
 		void PostForm(const std::string &url, const std::string &formBody, Callback callback);
 
-		// Cancel any in-flight request and join the worker thread. Call on plugin unload.
+		// Cancel the in-flight requests and join the worker threads. Call on plugin unload.
 		void Shutdown();
 
 		// Re-arm after Shutdown so the worker can restart on the next request.
