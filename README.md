@@ -36,14 +36,14 @@ Game-agnostic helpers.
 
 Engine types and memory access.
 
-| Path                     | What                                                                     |
-| ------------------------ | ------------------------------------------------------------------------ |
-| `sdk/plugin_globals.h`   | Shared engine + Metamod interface globals + `MMU_GET_CORE_INTERFACES`    |
-| `sdk/schema.h/.cpp`      | Schema offset resolver, `DECLARE_SCHEMA_CLASS`, `SCHEMA_FIELD`           |
-| `sdk/sigscan.h/.cpp`     | `sig::` module range/section, KHook-backed sig scan, RTTI vtable/object  |
-| `sdk/gamedata.h/.cpp`    | `mmu::GameData` KV1 offsets loader + shared `mmu::gamedata` offsets/sigs |
-| `sdk/server_client.h`    | `CServerSideClient` vtable resolve, hook indices, slot offset            |
-| `sdk/entity/*.h`         | Entity wrappers, button masks, `mmu::EntitySystem`                       |
+| Path                   | What                                                                     |
+| ---------------------- | ------------------------------------------------------------------------ |
+| `sdk/plugin_globals.h` | Shared engine + Metamod interface globals + `MMU_GET_CORE_INTERFACES`    |
+| `sdk/schema.h/.cpp`    | Schema offset resolver, `DECLARE_SCHEMA_CLASS`, `SCHEMA_FIELD`           |
+| `sdk/sigscan.h/.cpp`   | `sig::` module range/section, KHook-backed sig scan, RTTI vtable/object  |
+| `sdk/gamedata.h/.cpp`  | `mmu::GameData` KV1 offsets loader + shared `mmu::gamedata` offsets/sigs |
+| `sdk/server_client.h`  | `CServerSideClient` vtable resolve, hook indices, slot offset            |
+| `sdk/entity/*.h`       | Entity wrappers, button masks, `mmu::EntitySystem`                       |
 
 ### `game/`
 
@@ -57,6 +57,7 @@ Player-facing behavior built on `sdk`.
 | `game/target.h`           | `mmu::FindTargets`, @groups/#slot/SteamID/name player targeting      |
 | `game/workshop.h/.cpp`    | Workshop registry checks, stale-ACF pruning, `PendingDownload`       |
 | `game/player_table.h`     | `mmu::PlayerTable<T>`, bounds-checked per-slot storage               |
+| `game/players.h/.cpp`     | `mmu::players`, who is in each slot and whether Steam confirmed them |
 
 ### `interfaces/`
 
