@@ -4,6 +4,8 @@
 #include <interfaces/interfaces.h>
 
 #include <map>
+#include <set>
+#include <utility>
 
 namespace
 {
@@ -87,7 +89,12 @@ static const FieldInfo *FindField(const char *className, uint32_t classKey, cons
 		}
 	}
 
-	MMU_LOG_WARN("Schema: Could not find offset for %s::%s\n", className, fieldName);
+	// Once per field, the accessors ask again on every call while it is unresolved.
+	static std::set<std::pair<uint32_t, uint32_t>> warned;
+	if (warned.insert({classKey, fieldKey}).second)
+	{
+		MMU_LOG_WARN("Schema: Could not find offset for %s::%s\n", className, fieldName);
+	}
 	return nullptr;
 }
 
