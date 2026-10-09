@@ -48,6 +48,11 @@ namespace
 	};
 
 	static_assert(sizeof(WorkshopTree<void *>) == 0x28, "CUtlOrderedMap layout drifted from the engine's");
+// The tree keeps its less func in a base, so nothing holding one is standard-layout and offsetof is only conditionally supported.
+// GCC and clang do support it.
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Winvalid-offsetof"
+#endif
 	static_assert(offsetof(CDedicatedServerWorkshopManager, m_mapLoadedWorkshopMaps) == 0x98, "workshop manager layout drifted");
 	static_assert(sizeof(CDedicatedServerWorkshopManager) == 0x100, "workshop manager layout drifted");
 
