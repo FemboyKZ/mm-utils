@@ -1,6 +1,8 @@
 #ifndef _INCLUDE_ICS2DRESSUP_H_
 #define _INCLUDE_ICS2DRESSUP_H_
 
+#include <ISmmPlugin.h>
+
 #include <cstdint>
 
 // Main thread only. Ask MetaFactory for it again on OnPluginLoad and OnPluginUnload, the pointer dangles once cs2dressup unloads.
@@ -9,7 +11,7 @@
 // Setters don't check the player's permissions. What a player wears still goes by them, see CanUse.
 // A const char * handed out aliases the plugin's storage, copy it.
 // A list getter writes up to `max` ids and returns how many there are.
-#define CS2DRESSUP_INTERFACE "ICS2Dressup001"
+#define CS2DRESSUP_INTERFACE "ICS2Dressup002"
 
 constexpr int kDressupTeamBoth = 0;
 constexpr int kDressupTeamT = 2;
@@ -338,8 +340,8 @@ public:
 class ICS2Dressup
 {
 public:
-	// Leave `forwards` at its default.
-	virtual bool AddListener(ICS2DressupListener *listener, int forwards = kDressupForwards) = 0;
+	// `owner` is your plugin's g_PLID: its listeners go when Metamod unloads it. Leave `forwards` at its default.
+	virtual bool AddListener(PluginId owner, ICS2DressupListener *listener, int forwards = kDressupForwards) = 0;
 	virtual bool RemoveListener(ICS2DressupListener *listener) = 0;
 
 	virtual bool AreItemsLoaded() = 0;
