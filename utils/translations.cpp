@@ -99,7 +99,7 @@ namespace mmu
 			{
 				continue;
 			}
-			kv::LoadFile(entry.path().string(), PhraseHandler, this);
+			kv::LoadFile(entry.path().string(), PhraseHandler, this, true);
 		}
 	}
 

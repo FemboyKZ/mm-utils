@@ -25,6 +25,14 @@ namespace kv
 		return static_cast<int>(LinesRead(in)) + 1;
 	}
 
+	// Set on a stream to have \n, \t, \" and \\ in a quoted string read as escapes, as a phrase file needs.
+	// Off, the string is taken as typed up to the next quote: a config value can be a path or a password.
+	inline long &Escapes(std::istream &in)
+	{
+		static const int index = std::ios_base::xalloc();
+		return in.iword(index);
+	}
+
 	inline int NextChar(std::istream &in)
 	{
 		int ch = in.get();
@@ -122,7 +130,7 @@ namespace kv
 					{
 						break;
 					}
-					if (ch == '\\')
+					if (ch == '\\' && Escapes(in))
 					{
 						int esc = NextChar(in);
 						if (esc == '"')
@@ -236,13 +244,14 @@ namespace kv
 
 	// Open `path` and parse its top-level "Root { ... }" body with `handler`.
 	// Returns false if the file is missing or isn't a braced root section.
-	inline bool LoadFile(const std::string &path, Handler handler, void *userdata)
+	inline bool LoadFile(const std::string &path, Handler handler, void *userdata, bool escapes = false)
 	{
 		std::ifstream file(path);
 		if (!file.is_open())
 		{
 			return false;
 		}
+		Escapes(file) = escapes;
 		Token root = NextToken(file);
 		if (root.kind != TokenType::String)
 		{
