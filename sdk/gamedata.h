@@ -28,13 +28,6 @@ namespace mmu
 	//   https://github.com/KZGlobalTeam/cs2kz-metamod/blob/master/gamedata/cs2kz-core.games.txt
 	namespace gamedata
 	{
-		// IGameResourceService to CGameEntitySystem* offset. Key "GameEntitySystem".
-#ifdef _WIN32
-		inline constexpr int kGameEntitySystemOffset = 88;
-#else
-		inline constexpr int kGameEntitySystemOffset = 80;
-#endif
-
 		// CCSPlayer_WeaponServices::DropWeapon vtable index. Key "CCSPlayer_WeaponServices::DropWeapon".
 #ifdef _WIN32
 		inline constexpr int kWeaponServicesDropWeaponIndex = 28;
@@ -61,9 +54,6 @@ namespace mmu
 		inline constexpr const char *kDispatchSpawnSig = "48 85 FF 74 ? 55 48 89 E5 41 55 41 54 49 89 FC";
 		inline constexpr const char *kRemoveEntitySig = "48 89 FE 48 85 FF 74 ? 48 8D 05 ? ? ? ? 48";
 #endif
-
-		// CCheckTransmitInfo to the recipient's CPlayerSlot. Key "QuietPlayerSlot".
-		inline constexpr int kCheckTransmitPlayerSlotOffset = 576;
 	} // namespace gamedata
 
 } // namespace mmu

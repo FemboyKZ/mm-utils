@@ -120,13 +120,7 @@ public:
 	static CCSPlayerController *FromSlot(int slot)
 	{
 		extern CGameEntitySystem *g_pEntitySystem;
-		// Past the player slots the index is some other entity's.
-		if (!g_pEntitySystem || slot < 0 || slot >= ABSOLUTE_PLAYER_LIMIT)
-		{
-			return nullptr;
-		}
-
-		return static_cast<CCSPlayerController *>(g_pEntitySystem->GetEntityInstance(CEntityIndex(slot + 1)));
+		return g_pEntitySystem ? static_cast<CCSPlayerController *>(g_pEntitySystem->GetPlayerController(CPlayerSlot(slot))) : nullptr;
 	}
 };
 
