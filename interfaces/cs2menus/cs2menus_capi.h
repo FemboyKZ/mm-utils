@@ -81,8 +81,7 @@ typedef void(CS2M_CALL *cs2m_column_cb)(cs2m_handle menu, int slot, int column, 
 
 // CS2M_ABI_VERSION the loaded library was built with. Gate before any other call.
 CS2M_API int CS2M_CALL cs2m_abi_version(void);
-// 1 if the underlying ICS2Menus005 instance is reachable.
-// Reserved for future out-of-DLL acquisition, currently always 1 when the symbol resolves.
+// 1 while Metamod has cs2menus loaded.
 CS2M_API int CS2M_CALL cs2m_available(void);
 
 // Buffer convention for the string getters (cs2m_get_*): copies UTF-8 (NUL-terminated) into buf,
@@ -201,7 +200,7 @@ CS2M_API int CS2M_CALL cs2m_get_item_subtext(cs2m_handle menu, int item, char *b
 // Grid minimum, `tile size` above, default Small.
 CS2M_API void CS2M_CALL cs2m_set_menu_tile_size(cs2m_handle menu, int size);
 CS2M_API int CS2M_CALL cs2m_get_menu_tile_size(cs2m_handle menu);
-// Inside a showcase, beside the box otherwise. An addon image class like cs2m_set_item_image's. "" removes it.
+// Inside a showcase, beside the box of a list or a grid. An addon image class like cs2m_set_item_image's. "" removes it.
 CS2M_API void CS2M_CALL cs2m_set_menu_image(cs2m_handle menu, const char *image);
 CS2M_API int CS2M_CALL cs2m_get_menu_image(cs2m_handle menu, char *buf, int buflen);
 // Showcase: a wide button under the page's buttons, on every page. -1 for none. Set after the items.
@@ -330,6 +329,7 @@ CS2M_API int CS2M_CALL cs2m_get_text_features(cs2m_handle menu);
 // See ICS2Menus::ShowNotice. `on_mouse1` may be null. Returns 0 when the slot can't be shown one.
 CS2M_API int CS2M_CALL cs2m_show_notice(int slot, const char *title, const char *text, const char *hint, float seconds, cs2m_notice_cb on_mouse1,
 										void *user);
+// Only a notice shown through this C ABI.
 CS2M_API void CS2M_CALL cs2m_hide_notice(int slot);
 
 // --- Table ---

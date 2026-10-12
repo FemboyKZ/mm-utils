@@ -25,7 +25,7 @@
 //  - DestroyMenu off-thread invalidates the handle at once but skips the Destroyed callback.
 //  - const char * getters alias internal storage, copy them, don't cache.
 //  - Don't block a main-thread callback on a worker that re-enters this API (lock is held -> deadlock).
-#define CS2MENUS_INTERFACE "ICS2Menus006"
+#define CS2MENUS_INTERFACE "ICS2Menus007"
 
 // The including plugin's own id, what its menus are owned by.
 extern PluginId g_PLID;
@@ -592,7 +592,7 @@ public:
 	virtual void SetItemImage(MenuHandle menu, int item, const char *image) = 0;
 	virtual const char *GetItemImage(MenuHandle menu, int item) = 0;
 
-	// Inside a showcase, beside the box otherwise (hidden while a value popup is open).
+	// Inside a showcase, beside the box of a list or a grid (hidden while a value popup is open).
 	virtual void SetMenuImage(MenuHandle menu, const char *image) = 0;
 	virtual const char *GetMenuImage(MenuHandle menu) = 0;
 
@@ -723,7 +723,13 @@ public:
 
 	// Waits for chat with the menu up, its input field showing `prompt` and, at its end, `hint`. Ends with EndMenuInput,
 	// another menu, or a click in the window, which calls `onCancel`. False on the list and the other types: suspend instead.
-	virtual bool BeginMenuInput(int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel) = 0;
+	bool BeginMenuInput(int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel)
+	{
+		return BeginMenuInputFor(g_PLID, slot, prompt, hint, std::move(onCancel));
+	}
+
+	// BeginMenuInput as it was, see CreateMenuUnowned.
+	virtual bool BeginMenuInputUnowned(int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel) = 0;
 	virtual void EndMenuInput(int slot) = 0;
 	// With a callback the input field has a clear button while it has text.
 	virtual void SetMenuInputClearCallback(MenuHandle menu, MenuInputClearFn onClear) = 0;
@@ -736,8 +742,14 @@ public:
 
 	// `danger` draws the confirm button red. On false, go ahead or ask in chat.
 	// With kMenuTextConfirm chat and HTML ask too.
-	virtual bool ShowMenuConfirm(int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger,
-								 MenuConfirmFn onDone) = 0;
+	bool ShowMenuConfirm(int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger, MenuConfirmFn onDone)
+	{
+		return ShowMenuConfirmFor(g_PLID, slot, title, body, cancel, confirm, danger, std::move(onDone));
+	}
+
+	// ShowMenuConfirm as it was, see CreateMenuUnowned.
+	virtual bool ShowMenuConfirmUnowned(int slot, const char *title, const char *body, const char *cancel, const char *confirm, bool danger,
+										MenuConfirmFn onDone) = 0;
 
 	// Studio: a part of the hint pill, `keys` separated by spaces, "" for a caption. Up to 5 parts of 4 keys.
 	// Stays until the display ends.
@@ -768,7 +780,15 @@ public:
 
 	// ShowNotice as it was, see CreateMenuUnowned.
 	virtual bool ShowNoticeUnowned(int slot, const char *title, const char *text, const char *hint, float seconds, MenuNoticeFn onMouse1) = 0;
-	virtual void HideNotice(int slot) = 0;
+
+	// Only the calling plugin's notice.
+	void HideNotice(int slot)
+	{
+		HideNoticeFor(g_PLID, slot);
+	}
+
+	// HideNotice as it was: whoever's notice it is.
+	virtual void HideNoticeUnowned(int slot) = 0;
 
 	// Table: a heading, a button with a callback. The first is over the items' text, each one after it over `cells` of their cells.
 	// `sort` draws an arrow, 1 up and -1 down. Returns the index, or -1 past 6.
@@ -788,6 +808,14 @@ public:
 	virtual MenuHandle CreateMenuFor(PluginId owner, MenuType type, const char *title, MenuItemSelectFn onSelect) = 0;
 	virtual bool ShowNoticeFor(PluginId owner, int slot, const char *title, const char *text, const char *hint, float seconds,
 							   MenuNoticeFn onMouse1) = 0;
+
+	// What BeginMenuInput, ShowMenuConfirm and HideNotice call.
+	// When Metamod unloads `owner`, its typing and question are dropped from whatever menu they are over.
+	virtual bool BeginMenuInputFor(PluginId owner, int slot, const char *prompt, const char *hint, MenuInputCancelFn onCancel) = 0;
+	virtual bool ShowMenuConfirmFor(PluginId owner, int slot, const char *title, const char *body, const char *cancel, const char *confirm,
+									bool danger, MenuConfirmFn onDone) = 0;
+	// Only if the slot's notice is `owner`'s.
+	virtual void HideNoticeFor(PluginId owner, int slot) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_
