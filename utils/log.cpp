@@ -8,6 +8,7 @@
 #include <cstring>
 #include <ctime>
 #include <filesystem>
+#include <mutex>
 #include <string>
 
 extern ISmmAPI *g_SMAPI;
@@ -28,6 +29,8 @@ namespace
 	FILE *g_file = nullptr;
 	// Date the open file was named after, so a server running past midnight rolls over.
 	std::string g_fileDate;
+	// Worker threads log too. Never held across a LoggingSystem call, which may lock around the listener.
+	std::mutex g_fileMutex;
 
 	std::filesystem::path LogDir()
 	{
@@ -140,7 +143,13 @@ namespace
 	public:
 		void Log(const LoggingContext_t *pContext, const tchar *pMessage) override
 		{
-			if (pContext->m_ChannelID != g_channel || !g_toFile)
+			if (pContext->m_ChannelID != g_channel)
+			{
+				return;
+			}
+
+			std::lock_guard<std::mutex> lock(g_fileMutex);
+			if (!g_toFile)
 			{
 				return;
 			}
@@ -185,10 +194,13 @@ namespace mmu
 
 		void Init(const Setup &setup)
 		{
-			g_setup = setup;
-			g_channelName = setup.channelName ? setup.channelName : "mmu";
-			g_addonName = setup.addonName ? setup.addonName : "";
-			g_toFile = setup.toFile;
+			{
+				std::lock_guard<std::mutex> lock(g_fileMutex);
+				g_setup = setup;
+				g_channelName = setup.channelName ? setup.channelName : "mmu";
+				g_addonName = setup.addonName ? setup.addonName : "";
+				g_toFile = setup.toFile;
+			}
 			g_logTag = g_channelName.c_str();
 
 			// Channels can't be unregistered, reuse one left over from a previous load.
@@ -215,13 +227,17 @@ namespace mmu
 				LoggingSystem_UnregisterLoggingListener(&g_listener);
 				g_listenerRegistered = false;
 			}
-			CloseFile();
+			{
+				std::lock_guard<std::mutex> lock(g_fileMutex);
+				CloseFile();
+			}
 			g_channel = INVALID_LOGGING_CHANNEL_ID;
 			g_logTag = "mmu";
 		}
 
 		void SetToFile(bool enable)
 		{
+			std::lock_guard<std::mutex> lock(g_fileMutex);
 			g_toFile = enable;
 			if (!enable)
 			{
