@@ -26,7 +26,7 @@ static constexpr ForwardHandle kInvalidForwardHandle = 0;
 using OnBanPlayerFn = std::function<bool(int targetSlot, int adminSlot, int timeMinutes, const char *reason)>;
 using OnUnbanPlayerFn = std::function<void(const char *authid, int adminSlot)>;
 
-// Mute/Gag/Silence
+// Mute/Gag/Silence. timeMinutes is 0 for permanent, -1 for a session-only block.
 using OnMutePlayerFn = std::function<bool(int targetSlot, int adminSlot, int timeMinutes, const char *reason)>;
 using OnGagPlayerFn = std::function<bool(int targetSlot, int adminSlot, int timeMinutes, const char *reason)>;
 using OnSilencePlayerFn = std::function<bool(int targetSlot, int adminSlot, int timeMinutes, const char *reason)>;
