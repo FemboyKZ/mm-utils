@@ -469,7 +469,7 @@ public:
 	// Remove one item by absolute index (shifts later indices down). Viewers re-rendered, cursor/page clamped.
 	virtual void RemoveItem(MenuHandle menu, int item) = 0;
 
-	// Clear every item. Viewers are re-rendered (cursor/page reset to 0).
+	// Clear every item. Viewers are re-rendered (cursor/page reset to 0). The pinned, secondary and start item reset too.
 	virtual void RemoveAllItems(MenuHandle menu) = 0;
 
 	// Number of items in the menu, or 0 for an invalid handle.
