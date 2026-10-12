@@ -42,7 +42,8 @@ inline std::string SteamID2Or3ToAuthId(const std::string &input)
 	unsigned int y = 0;
 	unsigned int z = 0;
 	int end = 0;
-	if (sscanf(s.c_str(), "STEAM_%u:%u:%u%n", &x, &y, &z, &end) == 3 && end == static_cast<int>(s.size()))
+	// Y is the account ID's low bit. Any other value would fold into Z as some other player's ID.
+	if (sscanf(s.c_str(), "STEAM_%u:%u:%u%n", &x, &y, &z, &end) == 3 && end == static_cast<int>(s.size()) && y <= 1)
 	{
 		return "STEAM_0:" + std::to_string(y) + ":" + std::to_string(z);
 	}
