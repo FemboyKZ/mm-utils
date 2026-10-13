@@ -7,7 +7,9 @@
 
 #include <cctype>
 #include <cstdlib>
+#include <filesystem>
 #include <string>
+#include <system_error>
 
 namespace mmu
 {
@@ -49,17 +51,22 @@ namespace mmu
 			std::string type = "sqlite"; // "sqlite" or "mysql"
 			std::string prefix;          // table-name prefix
 			std::string path;            // SQLite: path relative to the game dir
+			// SQLite: `path` as Defaults set it, and where older versions had the file. See ToConnectParams(gameDir).
+			std::string defaultPath;
+			std::string oldDefaultPath;
 			std::string host = "localhost";
 			std::string user = "root";
 			std::string pass;
 			std::string name;
 			int port = 3306;
 
-			static DatabaseBlock Defaults(const char *dbName, const char *sqlitePath, const char *tablePrefix)
+			static DatabaseBlock Defaults(const char *dbName, const char *sqlitePath, const char *tablePrefix, const char *oldSqlitePath = "")
 			{
 				DatabaseBlock b;
 				b.name = dbName;
 				b.path = sqlitePath;
+				b.defaultPath = sqlitePath;
+				b.oldDefaultPath = oldSqlitePath;
 				b.prefix = tablePrefix;
 				return b;
 			}
@@ -83,6 +90,24 @@ namespace mmu
 				p.pass = pass;
 				p.database = name;
 				p.port = port;
+				return p;
+			}
+
+			// A SQLite file still at the old default path is used while there is none at the new one.
+			sql::ConnectParams ToConnectParams(const char *gameDir) const
+			{
+				sql::ConnectParams p = ToConnectParams();
+				if (IsMySQL() || oldDefaultPath.empty() || path != defaultPath)
+				{
+					return p;
+				}
+				std::error_code ec;
+				const std::filesystem::path dir(gameDir);
+				if (!std::filesystem::exists(dir / path, ec) && std::filesystem::exists(dir / oldDefaultPath, ec))
+				{
+					MMU_LOG_INFO("Database: using the file at its old default path %s.\n", oldDefaultPath.c_str());
+					p.path = oldDefaultPath;
+				}
 				return p;
 			}
 		};
