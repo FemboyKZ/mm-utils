@@ -15,6 +15,11 @@ namespace mmu
 {
 	namespace config
 	{
+		inline void WarnUnknownKey(const std::string &section, const std::string &key)
+		{
+			MMU_LOG_WARN("%s > %s: unknown key, check its spelling.\n", section.c_str(), key.c_str());
+		}
+
 		// No ChatPrefix here, its color tags need chat_colors.cpp, which console-only plugins don't build.
 		struct GeneralBlock
 		{
