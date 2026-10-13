@@ -100,7 +100,7 @@ namespace mmu
 
 // Define a printf-style wrapper around a ChatPrinter V method.
 // `invoke` sees `fmt` and `args`, plus `slot` in the SLOT form. T variants get the phrase as `fmt`.
-//   MMU_PRINT_SLOT_FN(ADMIN_PrintToChat, Printer().ChatToSlotV(slot, fmt, args))
+//   MMU_PRINT_SLOT_FN(CS2A_PrintToChat, Printer().ChatToSlotV(slot, fmt, args))
 #define MMU_PRINT_SLOT_FN(fn, invoke) \
 	void fn(int slot, const char *fmt, ...) \
 	{ \
