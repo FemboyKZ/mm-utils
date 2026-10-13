@@ -13,6 +13,36 @@ namespace mmu
 {
 	namespace config
 	{
+		// No ChatPrefix here, its color tags need chat_colors.cpp, which console-only plugins don't build.
+		struct GeneralBlock
+		{
+			std::string commandPrefix = "!";
+			std::string silentCommandPrefix = "/";
+			std::string defaultLanguage = "en";
+		};
+
+		// `key` must be lowercase. Returns false for keys it does not own.
+		inline bool ApplyGeneralKey(GeneralBlock &g, const std::string &key, const std::string &value)
+		{
+			if (key == "commandprefix")
+			{
+				g.commandPrefix = value;
+			}
+			else if (key == "silentcommandprefix")
+			{
+				g.silentCommandPrefix = value;
+			}
+			else if (key == "defaultlanguage")
+			{
+				g.defaultLanguage = value;
+			}
+			else
+			{
+				return false;
+			}
+			return true;
+		}
+
 		// [Database] connection settings. An "enabled" key, if any, stays with the plugin.
 		struct DatabaseBlock
 		{
@@ -115,6 +145,17 @@ namespace mmu
 				return false;
 			}
 			return true;
+		}
+
+		// Also takes "enabled", for an optional database.
+		inline bool ApplyOptionalDatabaseKey(DatabaseBlock &db, bool &enabled, const std::string &key, const std::string &value)
+		{
+			if (key == "enabled")
+			{
+				enabled = (value != "0");
+				return true;
+			}
+			return ApplyDatabaseKey(db, key, value);
 		}
 
 		struct LogBlock

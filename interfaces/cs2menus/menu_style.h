@@ -48,7 +48,7 @@ struct MenuStyleBlock
 	}
 
 	// `key` must be lowercase. Returns false for keys it does not own.
-	// Takes both "type"/"nav*" (cs2admin) and "menutype"/"menunav*" (cs2rockthevote).
+	// "menutype"/"menunav*" are the old names.
 	bool ApplyKey(const std::string &key, const std::string &value)
 	{
 		if (key == "type" || key == "menutype")
