@@ -20,7 +20,7 @@ namespace mmu
 			MMU_LOG_WARN("%s > %s: unknown key, check its spelling.\n", section.c_str(), key.c_str());
 		}
 
-		// No ChatPrefix here, its color tags need chat_colors.cpp, which console-only plugins don't build.
+		// No ChatPrefix, it needs chat_colors.cpp, which console-only plugins don't build.
 		struct GeneralBlock
 		{
 			std::string commandPrefix = "!";
@@ -56,7 +56,7 @@ namespace mmu
 			std::string type = "sqlite"; // "sqlite" or "mysql"
 			std::string prefix;          // table-name prefix
 			std::string path;            // SQLite: path relative to the game dir
-			// SQLite: `path` as Defaults set it, and where older versions had the file. See ToConnectParams(gameDir).
+			// SQLite: the default path, and the one of older versions.
 			std::string defaultPath;
 			std::string oldDefaultPath;
 			std::string host = "localhost";
@@ -98,7 +98,7 @@ namespace mmu
 				return p;
 			}
 
-			// A SQLite file still at the old default path is used while there is none at the new one.
+			// Keeps using a SQLite file at the old default path.
 			sql::ConnectParams ToConnectParams(const char *gameDir) const
 			{
 				sql::ConnectParams p = ToConnectParams();
@@ -177,7 +177,7 @@ namespace mmu
 			return true;
 		}
 
-		// Also takes "enabled", for an optional database.
+		// Also takes "enabled".
 		inline bool ApplyOptionalDatabaseKey(DatabaseBlock &db, bool &enabled, const std::string &key, const std::string &value)
 		{
 			if (key == "enabled")

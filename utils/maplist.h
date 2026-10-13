@@ -52,7 +52,10 @@ namespace mmu
 	inline bool MapNameLess(const std::string &a, const std::string &b)
 	{
 		auto less = [](const char *x, const char *xEnd, const char *y, const char *yEnd)
-		{ return std::lexicographical_compare(x, xEnd, y, yEnd, [](char c, char d) { return std::tolower((unsigned char)c) < std::tolower((unsigned char)d); }); };
+		{
+			return std::lexicographical_compare(x, xEnd, y, yEnd,
+												[](char c, char d) { return std::tolower((unsigned char)c) < std::tolower((unsigned char)d); });
+		};
 		const char *aEnd = a.c_str() + a.size();
 		const char *bEnd = b.c_str() + b.size();
 		const char *aKey = a.c_str() + MapPrefixLength(a);
