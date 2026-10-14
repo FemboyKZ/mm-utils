@@ -4,12 +4,12 @@
 #include "sdk/schema.h"
 #include "sdk/entity/cbaseentity.h"
 #include "sdk/entity/ccsplayerpawn.h"
-#include <entity2/entitysystem.h>
+#include <gameentitysystem.h>
 #include <entity2/entityidentity.h>
 #include <entityhandle.h>
 #include <ehandle.h>
 #include <shareddefs.h> // CS_TEAM_*
-#include <tier1/utlsymbollarge.h>
+#include <tier0/utlsymbollarge.h>
 
 #include <cstring>
 

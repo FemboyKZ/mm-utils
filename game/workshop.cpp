@@ -3,13 +3,13 @@
 #include "sdk/sigscan.h"
 #include "utils/log.h"
 
-#include <filesystem.h>
+#include <filesystem/ifilesystem.h>
 #include <interfaces/interfaces.h>
-#include <KeyValues.h>
-#include <tier1/bufferstring.h>
-#include <tier1/convar.h>
-#include <tier1/utlmap.h>
-#include <tier1/utlstring.h>
+#include <tier0/keyvalues.h>
+#include <tier0/buffer_string.h>
+#include <tier0/convar.h>
+#include <tier0/utlmap.h>
+#include <tier0/utlstring.h>
 
 #include <cstdio>
 #include <cstdlib>

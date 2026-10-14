@@ -4,16 +4,16 @@
 
 #include <khook.hpp>
 #include <netmessages.pb.h>
-#include <networksystem/netmessage.h>
+#include <networksystem/inetworkmessages.h>
 
 namespace
 {
 	mmu::voiceblock::ShouldBlock s_shouldBlock = nullptr;
 	bool s_hooked = false;
 
-	KHook::Return<bool> OnProcessVoiceData(CServerSideClient *client, const CNetMessagePB<CCLCMsg_VoiceData> &)
+	KHook::Return<bool> OnProcessVoiceData(CServerSideClientBase *client, const CNetMessagePB<CCLCMsg_VoiceData> &)
 	{
-		if (s_shouldBlock && s_shouldBlock(mmu::serverclient::Slot(client)))
+		if (s_shouldBlock && s_shouldBlock(client->GetPlayerSlot().Get()))
 		{
 			return {KHook::Action::Supersede, true};
 		}
@@ -21,8 +21,8 @@ namespace
 	}
 
 	// Pre, since Supersede in a post callback runs after the packet was already relayed.
-	KHook::Virtual<CServerSideClient, bool, const CNetMessagePB<CCLCMsg_VoiceData> &> s_voiceHook(mmu::serverclient::kProcessVoiceDataIndex,
-																								  &OnProcessVoiceData, nullptr);
+	KHook::Virtual<CServerSideClientBase, bool, const CNetMessagePB<CCLCMsg_VoiceData> &> s_voiceHook(&CServerSideClientBase::ProcessVoiceData,
+																									  &OnProcessVoiceData, nullptr);
 } // namespace
 
 namespace mmu

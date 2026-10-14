@@ -3,14 +3,14 @@
 #include "sdk/server_client.h"
 
 #include <ISmmPlugin.h>
-#include <eiface.h>
+#include <engine2/isource2server.h>
+#include <engine2/ivengineserver2.h>
 #include <khook.hpp>
 
-#include <engine/igameeventsystem.h>
+#include <engine2/igameeventsystem.h>
 #include <netmessages.pb.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/inetworkserializer.h>
-#include <networksystem/netmessage.h>
 #include <recipientfilter.h>
 
 #include <array>
@@ -57,9 +57,9 @@ namespace
 		return (s_cookieTag << 16) | s_counter;
 	}
 
-	KHook::Return<bool> OnRespondCvarValue(CServerSideClient *client, const CNetMessagePB<CCLCMsg_RespondCvarValue> &msg)
+	KHook::Return<bool> OnRespondCvarValue(CServerSideClientBase *client, const CNetMessagePB<CCLCMsg_RespondCvarValue> &msg)
 	{
-		const int slot = mmu::serverclient::Slot(client);
+		const int slot = client->GetPlayerSlot().Get();
 		const int cookie = msg.cookie();
 		if (slot < 0 || slot >= kMaxPlayers || (cookie >> 16) != s_cookieTag)
 		{
@@ -94,8 +94,8 @@ namespace
 		return {KHook::Action::Ignore, true};
 	}
 
-	KHook::Virtual<CServerSideClient, bool, const CNetMessagePB<CCLCMsg_RespondCvarValue> &>
-		s_respondHook(mmu::serverclient::kProcessRespondCvarValueIndex, nullptr, &OnRespondCvarValue);
+	KHook::Virtual<CServerSideClientBase, bool, const CNetMessagePB<CCLCMsg_RespondCvarValue> &>
+		s_respondHook(&CServerSideClientBase::ProcessRespondCvarValue, nullptr, &OnRespondCvarValue);
 
 	// False means nothing went on the wire, so no callback is owed.
 	bool SendQuery(int slot, const char *cvarName, int cookie)

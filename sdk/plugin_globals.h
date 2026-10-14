@@ -5,7 +5,8 @@
 // This header only declares them. Each plugin still DEFINES them.
 
 #include <ISmmPlugin.h>
-#include <eiface.h>
+#include <engine2/isource2server.h>
+#include <engine2/ivengineserver2.h>
 
 extern IVEngineServer *g_pEngine;
 extern IServerGameDLL *g_pServerGameDLL;

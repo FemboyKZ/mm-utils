@@ -2,13 +2,15 @@
 #include "utils/chat_colors.h"
 
 #include <ISmmPlugin.h>
-#include <iserver.h>
+#include <engine2/inetworkserverservice.h>
+#include <engine2/ivengineserver2.h>
+#include <engine2/networkgameserverbase.h>
 
-#include <engine/igameeventsystem.h>
+#include <engine2/igameeventsystem.h>
 #include <networksystem/inetworkmessages.h>
 #include <networksystem/inetworkserializer.h>
-#include <networksystem/netmessage.h>
 #include <recipientfilter.h>
+#include <shareddefs.h>
 #include <usermessages.pb.h>
 
 #include <cstdio>
@@ -19,8 +21,6 @@ extern IVEngineServer *g_pEngine;
 extern INetworkMessages *g_pNetworkMessages;
 extern IGameEventSystem *g_pGameEventSystem;
 extern INetworkServerService *g_pNetworkServerService;
-
-#define HUD_PRINTTALK 3
 
 namespace mmu
 {
