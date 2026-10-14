@@ -1,5 +1,5 @@
-#ifndef _INCLUDE_MMU_ADMIN_ACCESS_H_
-#define _INCLUDE_MMU_ADMIN_ACCESS_H_
+#ifndef _INCLUDE_CS2ADMIN_ADMIN_ACCESS_H_
+#define _INCLUDE_CS2ADMIN_ADMIN_ACCESS_H_
 
 #include "interfaces/cs2admin/ics2admin.h"
 #include "interfaces/interface_bridge.h"
@@ -83,4 +83,4 @@ namespace mmu
 	};
 } // namespace mmu
 
-#endif // _INCLUDE_MMU_ADMIN_ACCESS_H_
+#endif // _INCLUDE_CS2ADMIN_ADMIN_ACCESS_H_

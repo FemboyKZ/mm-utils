@@ -1,5 +1,5 @@
-#ifndef _INCLUDE_RTV_FORWARDS_H_
-#define _INCLUDE_RTV_FORWARDS_H_
+#ifndef _INCLUDE_CS2RTV_FORWARDS_H_
+#define _INCLUDE_CS2RTV_FORWARDS_H_
 
 #include "interfaces/forward_list.h"
 
@@ -125,4 +125,4 @@ private:
 
 extern CS2RTVForwards g_CS2RTVForwards;
 
-#endif // _INCLUDE_RTV_FORWARDS_H_
+#endif // _INCLUDE_CS2RTV_FORWARDS_H_

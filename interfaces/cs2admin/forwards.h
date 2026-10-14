@@ -1,5 +1,5 @@
-#ifndef _INCLUDE_ADMIN_FORWARDS_H_
-#define _INCLUDE_ADMIN_FORWARDS_H_
+#ifndef _INCLUDE_CS2ADMIN_FORWARDS_H_
+#define _INCLUDE_CS2ADMIN_FORWARDS_H_
 
 #include "interfaces/forward_list.h"
 
@@ -392,4 +392,4 @@ private:
 
 extern CS2AForwards g_CS2AForwards;
 
-#endif // _INCLUDE_ADMIN_FORWARDS_H_
+#endif // _INCLUDE_CS2ADMIN_FORWARDS_H_
