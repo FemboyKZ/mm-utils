@@ -25,7 +25,7 @@
 //  - DestroyMenu off-thread invalidates the handle at once but skips the Destroyed callback.
 //  - const char * getters alias internal storage, copy them, don't cache.
 //  - Don't block a main-thread callback on a worker that re-enters this API (lock is held -> deadlock).
-#define CS2MENUS_INTERFACE "ICS2Menus007"
+#define CS2MENUS_INTERFACE "ICS2Menus008"
 
 // The including plugin's own id, what its menus are owned by.
 extern PluginId g_PLID;
@@ -816,6 +816,11 @@ public:
 									bool danger, MenuConfirmFn onDone) = 0;
 	// Only if the slot's notice is `owner`'s.
 	virtual void HideNoticeFor(PluginId owner, int slot) = 0;
+
+	// ============================= Chip icons ==============================
+
+	// A chip option's icon before its text, a class the addon has as "img-<image>". "" for none. Not in the table.
+	virtual void SetMenuChipOptionImage(MenuHandle menu, int chip, int option, const char *image) = 0;
 };
 
 #endif // _INCLUDE_ICS2MENUS_H_
