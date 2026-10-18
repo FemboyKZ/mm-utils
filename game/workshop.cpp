@@ -343,6 +343,21 @@ namespace mmu
 			return out;
 		}
 
+		std::string LoadedMapName(uint64_t fileId)
+		{
+			if (!ResolveManager())
+			{
+				return "";
+			}
+			const auto &maps = g_pWorkshopMgr->m_mapLoadedWorkshopMaps;
+			int index = FindKey(maps, fileId);
+			if (index == maps.InvalidIndex() || !maps.Element(index))
+			{
+				return "";
+			}
+			return maps.Element(index)->m_szMapName.Get();
+		}
+
 		// Files on disk, and nothing else.
 		// Steam's k_EItemStateInstalled reflects the ACF, which outlives files a cleaner deleted,
 		// and the engine's registry is read through a struct layout we reconstructed by hand.

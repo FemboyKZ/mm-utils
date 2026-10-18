@@ -18,6 +18,10 @@ namespace mmu
 		// All workshop file ids the engine currently lists as loaded.
 		std::vector<uint64_t> InstalledMapIds();
 
+		// The engine's map name for a loaded workshop map, "" when it lists none.
+		// CCSGameRules::ChangeLevel turns a nextlevel of this name into the addon, so it holds only maps hosted since the server started.
+		std::string LoadedMapName(uint64_t fileId);
+
 		// True only when the addon's .vpk is actually on disk.
 		// Neither Steam's state nor the engine registry is consulted, since both outlive deleted files.
 		bool IsReady(uint64_t fileId);
