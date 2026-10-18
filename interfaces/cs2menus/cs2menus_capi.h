@@ -288,6 +288,8 @@ CS2M_API int CS2M_CALL cs2m_add_menu_action(cs2m_handle menu, const char *label,
 CS2M_API int CS2M_CALL cs2m_add_menu_note(cs2m_handle menu, const char *label, const char *value);
 // See ICS2Menus::SetMenuChipOptionTone, `tone` above.
 CS2M_API void CS2M_CALL cs2m_set_chip_option_tone(cs2m_handle menu, int chip, int option, int tone);
+// See ICS2Menus::SetMenuChipOptionImage. An addon image class like cs2m_set_item_image's, "" removes it.
+CS2M_API void CS2M_CALL cs2m_set_chip_option_image(cs2m_handle menu, int chip, int option, const char *image);
 // `on_chip` may be null to clear it. `user` is echoed back to it.
 CS2M_API void CS2M_CALL cs2m_set_chip_callback(cs2m_handle menu, cs2m_chip_cb on_chip, void *user);
 
