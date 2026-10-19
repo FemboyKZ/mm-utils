@@ -5,30 +5,25 @@
 
 namespace mmu
 {
-	// Bounds-checked per-slot storage, slots 0..MAXPLAYERS inclusive.
+	// Bounds-checked per-slot storage.
 	// Clear() assigns a fresh T, so T's member defaults are its cleared state.
 	template<typename T>
 	class PlayerTable
 	{
 	public:
-		static bool ValidSlot(int slot)
-		{
-			return slot >= 0 && slot <= MAXPLAYERS;
-		}
-
 		T *Get(int slot)
 		{
-			return ValidSlot(slot) ? &m_players[slot] : nullptr;
+			return mmu::ValidSlot(slot) ? &m_players[slot] : nullptr;
 		}
 
 		const T *Get(int slot) const
 		{
-			return ValidSlot(slot) ? &m_players[slot] : nullptr;
+			return mmu::ValidSlot(slot) ? &m_players[slot] : nullptr;
 		}
 
 		void Clear(int slot)
 		{
-			if (ValidSlot(slot))
+			if (mmu::ValidSlot(slot))
 			{
 				m_players[slot] = T();
 			}
@@ -38,7 +33,7 @@ namespace mmu
 		int Count(Pred pred) const
 		{
 			int n = 0;
-			for (int i = 0; i <= MAXPLAYERS; i++)
+			for (int i = 0; i < MAXPLAYERS; i++)
 			{
 				if (pred(m_players[i]))
 				{
@@ -49,7 +44,7 @@ namespace mmu
 		}
 
 	private:
-		T m_players[MAXPLAYERS + 1] {};
+		T m_players[MAXPLAYERS] {};
 	};
 } // namespace mmu
 

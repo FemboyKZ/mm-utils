@@ -67,7 +67,9 @@ inline uint64_t ParseSteamID64(const std::string &input)
 	unsigned int z = 0;
 	if (!authid.empty() && sscanf(authid.c_str(), "STEAM_0:%u:%u", &y, &z) == 2)
 	{
-		return 76561197960265728ull + static_cast<uint64_t>(z) * 2 + y;
+		// The account ID is 32 bits.
+		const uint64_t account = static_cast<uint64_t>(z) * 2 + y;
+		return account != 0 && account <= 0xFFFFFFFFull ? 76561197960265728ull + account : 0;
 	}
 	if (input.size() != 17 || input.compare(0, 4, "7656") != 0)
 	{
@@ -80,7 +82,16 @@ inline uint64_t ParseSteamID64(const std::string &input)
 			return 0;
 		}
 	}
-	return strtoull(input.c_str(), nullptr, 10);
+	const uint64_t steamid64 = strtoull(input.c_str(), nullptr, 10);
+	// Upper half of every player's SteamID64. Any other would come out as some other player's STEAM_0 form.
+	return (steamid64 >> 32) == 0x01100001 ? steamid64 : 0;
+}
+
+// Empty for anything ParseSteamID64 refuses.
+inline std::string NormalizeAuthId(const std::string &input)
+{
+	const uint64_t steamid64 = ParseSteamID64(input);
+	return steamid64 ? SteamID64ToAuthId(steamid64) : std::string();
 }
 
 // Extract the "X:Y" suffix from a "STEAM_0:X:Y" auth ID safely.

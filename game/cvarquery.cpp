@@ -1,5 +1,7 @@
 #include "game/cvarquery.h"
 #include "utils/log.h"
+#include "utils/translations.h"
+#include "sdk/plugin_globals.h"
 #include "sdk/server_client.h"
 
 #include <ISmmPlugin.h>
@@ -24,8 +26,6 @@ extern IGameEventSystem *g_pGameEventSystem;
 
 namespace
 {
-	constexpr int kMaxPlayers = 64;
-
 	// Reserved for the two convars queried on connect.
 	constexpr int kLanguageCounter = 0xFFFF;
 	constexpr int kOperatingSystemCounter = 0xFFFE;
@@ -37,7 +37,7 @@ namespace
 		std::string operatingSystem;
 	};
 
-	std::array<ClientData, kMaxPlayers> s_clients;
+	std::array<ClientData, MAXPLAYERS> s_clients;
 
 	bool s_hooked = false;
 
@@ -61,7 +61,7 @@ namespace
 	{
 		const int slot = client->GetPlayerSlot().Get();
 		const int cookie = msg.cookie();
-		if (slot < 0 || slot >= kMaxPlayers || (cookie >> 16) != s_cookieTag)
+		if (!mmu::ValidSlot(slot) || (cookie >> 16) != s_cookieTag)
 		{
 			return {KHook::Action::Ignore, true};
 		}
@@ -100,7 +100,7 @@ namespace
 	// False means nothing went on the wire, so no callback is owed.
 	bool SendQuery(int slot, const char *cvarName, int cookie)
 	{
-		if (!s_hooked || !cvarName || slot < 0 || slot >= kMaxPlayers)
+		if (!s_hooked || !cvarName || !mmu::ValidSlot(slot))
 		{
 			return false;
 		}
@@ -200,7 +200,7 @@ namespace mmu
 
 		void OnClientConnected(int slot, bool fakePlayer)
 		{
-			if (slot < 0 || slot >= kMaxPlayers)
+			if (!mmu::ValidSlot(slot))
 			{
 				return;
 			}
@@ -218,7 +218,7 @@ namespace mmu
 
 		void OnClientDisconnect(int slot)
 		{
-			if (slot >= 0 && slot < kMaxPlayers)
+			if (mmu::ValidSlot(slot))
 			{
 				s_clients[slot] = ClientData();
 			}
@@ -226,7 +226,7 @@ namespace mmu
 
 		const char *GetClientLanguage(int slot)
 		{
-			if (slot < 0 || slot >= kMaxPlayers || s_clients[slot].language.empty())
+			if (!mmu::ValidSlot(slot) || s_clients[slot].language.empty())
 			{
 				return nullptr;
 			}
@@ -235,11 +235,21 @@ namespace mmu
 
 		const char *GetClientOS(int slot)
 		{
-			if (slot < 0 || slot >= kMaxPlayers || s_clients[slot].operatingSystem.empty())
+			if (!mmu::ValidSlot(slot) || s_clients[slot].operatingSystem.empty())
 			{
 				return nullptr;
 			}
 			return s_clients[slot].operatingSystem.c_str();
+		}
+
+		std::string SlotLanguage(const Translations &t, int slot)
+		{
+			return t.MapClientLanguage(GetClientLanguage(slot));
+		}
+
+		std::string Translate(const Translations &t, int slot, const char *phrase)
+		{
+			return t.Translate(SlotLanguage(t, slot), phrase ? phrase : "");
 		}
 	} // namespace cvarquery
 } // namespace mmu

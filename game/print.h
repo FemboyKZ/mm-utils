@@ -12,8 +12,6 @@ class CGlobalVars;
 
 namespace mmu
 {
-	constexpr int kMaxPlayers = 64;
-
 	// CGlobalVars accessor, only valid during an active game.
 	CGlobalVars *GetGameGlobals();
 
@@ -45,8 +43,6 @@ namespace mmu
 		{
 			// Phrase tables for the T variants. Null passes phrases through untranslated.
 			const Translations *translations = nullptr;
-			// Per-slot phrase-file language key resolver.
-			std::string (*slotLanguage)(int slot) = nullptr;
 			// Live pointer to the plugin's chat prefix string, config reloads apply immediately.
 			const std::string *chatPrefix = nullptr;
 			// Append CHAT_COLOR_DEFAULT after the prefix.

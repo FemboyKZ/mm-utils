@@ -2,9 +2,12 @@
 #define _INCLUDE_MMU_CVARQUERY_H_
 
 #include <functional>
+#include <string>
 
 namespace mmu
 {
+	class Translations;
+
 	// Reads convar values off connected clients: CSVCMsg_GetCvarValue out, CCLCMsg_RespondCvarValue back.
 	namespace cvarquery
 	{
@@ -36,6 +39,10 @@ namespace mmu
 		// Null until the client answers, which lands shortly after connect.
 		const char *GetClientLanguage(int slot);
 		const char *GetClientOS(int slot);
+
+		// Default language until the client answers.
+		std::string SlotLanguage(const Translations &t, int slot);
+		std::string Translate(const Translations &t, int slot, const char *phrase);
 	} // namespace cvarquery
 } // namespace mmu
 

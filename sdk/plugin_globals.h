@@ -17,8 +17,16 @@ extern ISmmAPI *g_SMAPI;
 extern ISmmPlugin *g_PLAPI;
 extern PluginId g_PLID;
 
-// Highest client slot index. Player arrays are sized [MAXPLAYERS + 1].
+// Client slots are 0..MAXPLAYERS-1.
 #define MAXPLAYERS 64
+
+namespace mmu
+{
+	inline bool ValidSlot(int slot)
+	{
+		return slot >= 0 && slot < MAXPLAYERS;
+	}
+} // namespace mmu
 
 // Interfaces every plugin needs. Use inside Load() after PLUGIN_SAVEVARS().
 // Like the GET_V_IFACE_* calls it expands to, returns false from Load on failure.

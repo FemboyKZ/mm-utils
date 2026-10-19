@@ -41,7 +41,7 @@ public:
 		// meta clear unloads plugins without firing OnPluginUnload, so the cached pointer can already be a freed library.
 		if (m_menus.Revalidate())
 		{
-			for (int i = 0; i <= MAXPLAYERS; i++)
+			for (int i = 0; i < MAXPLAYERS; i++)
 			{
 				HideNotice(i);
 				// CancelMenu ends the display and its whole history, whose end callbacks forget and destroy each menu.
@@ -83,7 +83,7 @@ public:
 
 	// Shows a menu built on Get() and destroys it once its display ends, after `onEnd` runs.
 	// A menu in a history ends when the whole display does, or when it drops out of the history.
-	// A refused display destroys it at once and returns false. `slot` must be in 0..MAXPLAYERS.
+	// A refused display destroys it at once and returns false. `slot` must be in 0..MAXPLAYERS-1.
 	bool Present(int slot, MenuHandle menu, float duration, MenuEndFn onEnd = nullptr, Show how = Show::Display)
 	{
 		m_menus->SetMenuEndCallback(menu,
@@ -133,7 +133,7 @@ public:
 private:
 	void Forget(int slot, MenuHandle menu)
 	{
-		if (slot >= 0 && slot <= MAXPLAYERS)
+		if (mmu::ValidSlot(slot))
 		{
 			std::vector<MenuHandle> &live = m_live[slot];
 			live.erase(std::remove(live.begin(), live.end(), menu), live.end());
@@ -150,7 +150,7 @@ private:
 
 	mmu::InterfaceBridge<ICS2Menus> m_menus;
 	// Menus of ours that are on screen or in a slot's history.
-	std::vector<MenuHandle> m_live[MAXPLAYERS + 1];
+	std::vector<MenuHandle> m_live[MAXPLAYERS];
 };
 
 #endif // _INCLUDE_CS2MENUS_MENUS_CLIENT_H_

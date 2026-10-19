@@ -58,11 +58,11 @@ namespace mmu
 			result.error = error;
 			return result;
 		};
-		auto connected = [&lookup](int slot, TargetCandidate &who) { return slot >= 0 && slot <= MAXPLAYERS && lookup(slot, who); };
+		auto connected = [&lookup](int slot, TargetCandidate &who) { return mmu::ValidSlot(slot) && lookup(slot, who); };
 		auto bySteamID = [&](uint64_t steamid64)
 		{
 			TargetCandidate who;
-			for (int i = 0; i <= MAXPLAYERS; i++)
+			for (int i = 0; i < MAXPLAYERS; i++)
 			{
 				if (connected(i, who) && !who.bot && who.steamid64 == steamid64)
 				{
@@ -113,7 +113,7 @@ namespace mmu
 				return fail("Multiple players matched. Use a more specific target.");
 			}
 			result.group = group != "random";
-			for (int i = 0; i <= MAXPLAYERS; i++)
+			for (int i = 0; i < MAXPLAYERS; i++)
 			{
 				if (!connected(i, who))
 				{
@@ -183,7 +183,7 @@ namespace mmu
 		std::vector<int> exact;
 		std::vector<int> parts;
 		TargetCandidate who;
-		for (int i = 0; i <= MAXPLAYERS; i++)
+		for (int i = 0; i < MAXPLAYERS; i++)
 		{
 			CCSPlayerController *controller = connected(i, who) ? CCSPlayerController::FromSlot(i) : nullptr;
 			if (!controller)

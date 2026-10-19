@@ -1,4 +1,6 @@
 #include "game/print.h"
+#include "game/cvarquery.h"
+#include "sdk/plugin_globals.h"
 #include "utils/chat_colors.h"
 
 #include <ISmmPlugin.h>
@@ -127,7 +129,7 @@ namespace mmu
 
 	void SendChatToSlot(int slot, const char *text)
 	{
-		if (slot < 0 || slot >= kMaxPlayers)
+		if (!mmu::ValidSlot(slot))
 		{
 			return;
 		}
@@ -137,7 +139,7 @@ namespace mmu
 
 	void SendConsoleToSlot(int slot, const char *text)
 	{
-		if (slot < 0 || slot >= kMaxPlayers || !g_pEngine)
+		if (!mmu::ValidSlot(slot) || !g_pEngine)
 		{
 			return;
 		}
@@ -169,8 +171,7 @@ namespace mmu
 		{
 			return phrase ? phrase : "";
 		}
-		std::string lang = (slot >= 0 && m_setup.slotLanguage) ? m_setup.slotLanguage(slot) : "";
-		return m_setup.translations->Translate(lang, phrase ? phrase : "");
+		return cvarquery::Translate(*m_setup.translations, slot, phrase);
 	}
 
 	void ChatPrinter::ComposeChatLine(char *dst, size_t dstlen, const char *text, bool addPrefix) const
@@ -367,7 +368,7 @@ namespace mmu
 			ServerConsole(buffer);
 			return;
 		}
-		if (slot >= kMaxPlayers)
+		if (slot >= MAXPLAYERS)
 		{
 			return;
 		}
@@ -392,7 +393,7 @@ namespace mmu
 			ServerConsole(buffer);
 			return;
 		}
-		if (slot >= kMaxPlayers)
+		if (slot >= MAXPLAYERS)
 		{
 			return;
 		}
