@@ -57,7 +57,8 @@ Player-facing behavior built on `sdk`.
 | `game/target.h`           | `mmu::FindTargets`, @groups/#slot/SteamID/name player targeting      |
 | `game/workshop.h/.cpp`    | Workshop registry checks, stale-ACF pruning, `PendingDownload`       |
 | `game/player_table.h`     | `mmu::PlayerTable<T>`, bounds-checked per-slot storage               |
-| `game/players.h/.cpp`     | `mmu::players`, who is in each slot and whether Steam confirmed them |
+| `game/players.h/.cpp`     | `mmu::Players<T>`, who is in each slot and if Steam confirmed them   |
+| `game/say.h`              | `mmu::SaySlot`, the player behind a say or say_team                  |
 
 ### `interfaces/`
 
