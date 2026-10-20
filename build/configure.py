@@ -59,6 +59,13 @@ parser.options.add_argument(
     help="Enable optimization",
 )
 parser.options.add_argument(
+    "--sanitize",
+    choices=["address", "thread"],
+    dest="sanitize",
+    default=None,
+    help="Linux only: build with AddressSanitizer or ThreadSanitizer",
+)
+parser.options.add_argument(
     "-s",
     "--sdks",
     default="cs2",

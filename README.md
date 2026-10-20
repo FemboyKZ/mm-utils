@@ -90,6 +90,10 @@ itself based on [Metamod:Source](https://github.com/alliedmodders/metamod-source
 | `build/docker-entrypoint.sh` | Build inside the container `docker-compose.yml` starts                             |
 | `build/ci/*`                 | Composite actions `init`, `linux`, `windows`, `release` for the plugins' workflows |
 
+ASan/TSan build (Linux): `docker compose run --rm build bash ./mm-utils/build/docker-entrypoint.sh --sanitize=address|thread`.
+Run the server with the image's `libclang_rt.asan-x86_64.so` (or `tsan`) in `LD_PRELOAD`.
+TSan in a container needs `--security-opt seccomp=unconfined`.
+
 ## Usage
 
 Add the submodule:

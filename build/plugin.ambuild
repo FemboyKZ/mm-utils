@@ -304,6 +304,8 @@ const char *PLUGIN_REVISION_COUNT = \"{revision_count}\";
         for cxx in self.all_targets:
             if cxx.target.arch != "x86_64":
                 raise Exception("Unknown target architecture: {0}".format(cxx.target.arch))
+            if builder.options.sanitize and cxx.target.platform != "linux":
+                raise Exception("--sanitize is Linux only")
 
             self.configureCXX(cxx)
 
@@ -459,6 +461,9 @@ const char *PLUGIN_REVISION_COUNT = \"{revision_count}\";
             # Static libstdc++ brings STB_GNU_UNIQUE symbols, and glibc never unloads a library holding one.
             if shutil.which("ld.lld"):
                 cxx.linkflags += ["-fuse-ld=lld", "-Wl,--no-gnu-unique"]
+            if builder.options.sanitize:
+                cxx.cflags += ["-fsanitize=" + builder.options.sanitize, "-g"]
+                cxx.linkflags += ["-fsanitize=" + builder.options.sanitize]
         elif cxx.target.platform == "windows":
             cxx.defines += ["WIN32", "_WINDOWS", "NOMINMAX"]
 
