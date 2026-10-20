@@ -224,6 +224,7 @@ extern const char* PLUGIN_REVISION_COUNT;
 
         direct_head, git_head_path = getGitHeadPath()
         shorthash = longhash = revision_count = "0"
+        describe = ""
         if direct_head and git_head_path:
             # Force track head changes to trigger recompilation
             builder.AddConfigureFile(git_head_path)
@@ -239,6 +240,27 @@ extern const char* PLUGIN_REVISION_COUNT;
             except Exception as e:
                 print("Could not resolve git revision, using defaults: {}".format(e))
                 shorthash = longhash = revision_count = "0"
+            # Fails without a reachable tag, as in a shallow clone.
+            try:
+                describe = runAndReturn(["git", "describe", "--tags"])
+            except Exception:
+                describe = ""
+
+        # "v2.4.8" -> "2.4.8", off the tag "2.4.8-3-gabc1234".
+        describe = re.sub(r"^v(?=\d)", "", describe) or "0.0.0"
+        tag, commits_after_tag = describe, "0"
+        tag_match = re.match(r"(.+)-(\d+)-g[0-9a-f]+$", describe)
+        if tag_match:
+            tag, commits_after_tag = tag_match.group(1), tag_match.group(2)
+
+        if "{{git-describe}}" in version:
+            version = version.replace("{{git-describe}}", describe)
+
+        if "{{git-tag}}" in version:
+            version = version.replace("{{git-tag}}", tag)
+
+        if "{{git-commits-after-tag}}" in version:
+            version = version.replace("{{git-commits-after-tag}}", commits_after_tag)
 
         if "{{git-shorthash}}" in version:
             version = version.replace("{{git-shorthash}}", shorthash)
@@ -438,7 +460,7 @@ const char *PLUGIN_REVISION_COUNT = \"{revision_count}\";
             if shutil.which("ld.lld"):
                 cxx.linkflags += ["-fuse-ld=lld", "-Wl,--no-gnu-unique"]
         elif cxx.target.platform == "windows":
-            cxx.defines += ["WIN32", "_WINDOWS"]
+            cxx.defines += ["WIN32", "_WINDOWS", "NOMINMAX"]
 
     def Library(self, cxx, name):
         binary = cxx.Library(name)

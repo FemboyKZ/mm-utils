@@ -242,7 +242,7 @@ namespace mmu
 					if (m_reconnect)
 					{
 						MMU_LOG_INFO("sql_mm is back, reconnecting.\n");
-						m_retryAt = (std::max)(m_frameTime, 1e-9);
+						m_retryAt = std::max(m_frameTime, 1e-9);
 					}
 				}
 				return;
