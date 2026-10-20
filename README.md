@@ -77,6 +77,19 @@ Player-facing behavior built on `sdk`.
 | --------------------- | ------------------------------------------ |
 | `thirdparty/nlohmann` | nlohmann/json 3.12.0 (MIT), vendored as is |
 
+### `build/`
+
+The build and CI steps every plugin shares. From [zer0.k's mm_misc_plugins](https://github.com/zer0k-z/mm_misc_plugins),
+itself based on [Metamod:Source](https://github.com/alliedmodders/metamod-source)'s sample plugin.
+
+| Path                         | What                                                                               |
+| ---------------------------- | ---------------------------------------------------------------------------------- |
+| `build/plugin.ambuild`       | AMBuildScript body: SDK and Metamod lookup, compiler flags, versioning, metadata   |
+| `build/package.ambuild`      | PackageScript body: package layout, `.vdf`, `addGameFiles`                         |
+| `build/configure.py`         | The configure entry point                                                          |
+| `build/docker-entrypoint.sh` | Build inside the container `docker-compose.yml` starts                             |
+| `build/ci/*`                 | Composite actions `init`, `linux`, `windows`, `release` for the plugins' workflows |
+
 ## Usage
 
 Add the submodule:
@@ -85,6 +98,7 @@ Add the submodule:
 git submodule add https://github.com/FemboyKZ/mm-utils mm-utils
 ```
 
+AMBuildScript, PackageScript and configure.py run the shared parts in `build/` (see any plugin's for the template).
 AMBuildScript, in `additionalIncludes`:
 
 ```python

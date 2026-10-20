@@ -1,0 +1,46 @@
+name: Build (Linux)
+description: Configure, build and upload the package and its symbols.
+
+inputs:
+  artifact:
+    description: Name prefix of the uploaded artifacts.
+    required: true
+  runtime:
+    description: Steam runtime the container is, e.g. steamrt3.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Configure
+      shell: bash
+      run: |
+        mkdir -p build && cd build
+        python3 ../configure.py \
+          --enable-optimize \
+          --symbol-files
+
+    - name: Build
+      shell: bash
+      working-directory: build
+      run: ambuild
+
+    - name: Stage package
+      id: stage
+      shell: bash
+      run: |
+        mkdir -p staging
+        cp -r build/package/* staging/
+        echo "binary=$(python3 -c 'import json; print(json.load(open("plugin-metadata.json"))["name"])')" >> "$GITHUB_OUTPUT"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact }}-${{ inputs.runtime }}
+        path: staging
+
+    - name: Upload symbols
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact }}-${{ inputs.runtime }}-symbols
+        path: build/${{ steps.stage.outputs.binary }}.cs2/linux-x86_64/*.dbg

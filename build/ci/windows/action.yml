@@ -1,0 +1,62 @@
+name: Build (Windows)
+description: Set up MSVC and AMBuild, configure, build and upload the package and its symbols.
+
+inputs:
+  artifact:
+    description: Name prefix of the uploaded artifacts.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: "3.14"
+
+    - name: Set up MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: amd64
+
+    - name: Install AMBuild
+      shell: pwsh
+      run: |
+        git clone https://github.com/alliedmodders/ambuild.git
+        pip install ./ambuild
+
+    - name: Configure
+      shell: pwsh
+      run: |
+        mkdir -Force build | Out-Null; cd build
+        python ../configure.py `
+          --enable-optimize
+
+    - name: Build
+      shell: pwsh
+      working-directory: build
+      env:
+        LINK: /MAP
+      run: ambuild
+
+    - name: Stage package
+      id: stage
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Force -Path staging | Out-Null
+        Copy-Item -Recurse build/package/* staging/
+        "binary=$((Get-Content plugin-metadata.json -Raw | ConvertFrom-Json).name)" >> $env:GITHUB_OUTPUT
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact }}-windows
+        path: staging
+
+    - name: Upload symbols
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact }}-windows-symbols
+        path: |
+          build/${{ steps.stage.outputs.binary }}.cs2/windows-x86_64/*.pdb
+          build/${{ steps.stage.outputs.binary }}.cs2/windows-x86_64/*.map

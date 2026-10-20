@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directories: ["/build/ci/*"]
+    schedule:
+      interval: "monthly"
+      day: "sunday"
+      time: "15:00"
+      timezone: "Europe/Helsinki"
+    assignees: ["jvnipers"]
+    commit-message:
+      prefix: "github-actions"
