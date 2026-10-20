@@ -123,7 +123,7 @@ class MMSPluginConfig(object):
         if builder.options.targets:
             target_archs = builder.options.targets.split(",")
         else:
-            target_archs = ["x86", "x86_64"]
+            target_archs = ["x86_64"]
 
         for arch in target_archs:
             try:
@@ -280,8 +280,8 @@ const char *PLUGIN_REVISION_COUNT = \"{revision_count}\";
 
     def configure(self):
         for cxx in self.all_targets:
-            if cxx.target.arch not in ["x86", "x86_64"]:
-                raise Exception("Unknown target architecture: {0}".format(arch))
+            if cxx.target.arch != "x86_64":
+                raise Exception("Unknown target architecture: {0}".format(cxx.target.arch))
 
             self.configureCXX(cxx)
 
