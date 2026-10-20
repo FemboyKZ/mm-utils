@@ -71,7 +71,7 @@ parser.options.add_argument(
     default="cs2",
     dest="sdks",
     help='Build against specified SDKs; valid args are "all", "present", or '
-    'comma-delimited list of engine names (default: "all")',
+    'comma-delimited list of engine names (default: "cs2")',
 )
 parser.options.add_argument(
     "--targets",
