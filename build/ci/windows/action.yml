@@ -21,9 +21,7 @@ runs:
 
     - name: Install AMBuild
       shell: pwsh
-      run: |
-        git clone https://github.com/alliedmodders/ambuild.git
-        pip install ./ambuild
+      run: pip install git+https://github.com/alliedmodders/ambuild.git@01212cb57c96561f664b6dfb2ee10e66de6f81e4
 
     - name: Configure
       shell: pwsh
