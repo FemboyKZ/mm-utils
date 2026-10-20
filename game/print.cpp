@@ -18,10 +18,6 @@
 #include <cstdio>
 #include <cstring>
 
-extern ISmmAPI *g_SMAPI;
-extern IVEngineServer *g_pEngine;
-extern INetworkMessages *g_pNetworkMessages;
-extern IGameEventSystem *g_pGameEventSystem;
 extern INetworkServerService *g_pNetworkServerService;
 
 namespace mmu

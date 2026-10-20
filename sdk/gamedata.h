@@ -1,8 +1,14 @@
 #ifndef _INCLUDE_MMU_GAMEDATA_H_
 #define _INCLUDE_MMU_GAMEDATA_H_
 
+#include "sdk/plugin_globals.h"
+#include "sdk/sigscan.h"
+#include "utils/log.h"
+
 #include <map>
 #include <string>
+
+class IGameEventManager2;
 
 namespace mmu
 {
@@ -56,6 +62,25 @@ namespace mmu
 #endif
 	} // namespace gamedata
 
+	// Null when the signature misses or matches twice, which it logs.
+	inline IGameEventManager2 *FindGameEventManager()
+	{
+		void *base = nullptr;
+		size_t size = 0;
+		if (!g_pServerGameDLL || !sig::GetModuleRange(g_pServerGameDLL, base, size))
+		{
+			MMU_LOG_WARN("Could not locate the server module.\n");
+			return nullptr;
+		}
+		bool multiple = false;
+		void *insn = sig::FindSignatureUnique(base, size, gamedata::kGameEventManagerSig, multiple);
+		if (!insn || multiple)
+		{
+			MMU_LOG_WARN("GameEventManager signature %s.\n", insn ? "matched multiple times" : "not found");
+			return nullptr;
+		}
+		return static_cast<IGameEventManager2 *>(sig::ResolveRipRelative(insn));
+	}
 } // namespace mmu
 
 #endif // _INCLUDE_MMU_GAMEDATA_H_

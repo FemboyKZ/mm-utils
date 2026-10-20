@@ -20,10 +20,6 @@
 #include <string>
 #include <unordered_map>
 
-extern IVEngineServer *g_pEngine;
-extern INetworkMessages *g_pNetworkMessages;
-extern IGameEventSystem *g_pGameEventSystem;
-
 namespace
 {
 	// Reserved for the two convars queried on connect.

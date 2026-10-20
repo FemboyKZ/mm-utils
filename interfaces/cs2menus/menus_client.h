@@ -6,6 +6,7 @@
 #include "interfaces/interface_bridge.h"
 
 #include <algorithm>
+#include <string>
 #include <vector>
 
 // A consumer plugin's link to mm-cs2menus for one-shot menus.
@@ -113,6 +114,31 @@ public:
 			return false;
 		}
 		return true;
+	}
+
+	// One of ours on screen or in the slot's history.
+	bool Owns(int slot, MenuHandle menu) const
+	{
+		return mmu::ValidSlot(slot) && std::find(m_live[slot].begin(), m_live[slot].end(), menu) != m_live[slot].end();
+	}
+
+	// Page labels skip map prefixes like "kz_".
+	void SetMapListStyle(MenuHandle menu)
+	{
+		m_menus->SetMenuStyle(menu, MenuStyle::PagePrefixDelimiter, "_");
+		m_menus->SetMenuTextFeatures(menu, kMenuTextIndex);
+	}
+
+	// Valid while `strings` is.
+	static std::vector<const char *> Labels(const std::vector<std::string> &strings)
+	{
+		std::vector<const char *> out;
+		out.reserve(strings.size());
+		for (const std::string &s : strings)
+		{
+			out.push_back(s.c_str());
+		}
+		return out;
 	}
 
 	// Shutdown hides it.

@@ -628,4 +628,12 @@ namespace mmu
 		return DropStaleAddon(workshopId);
 	}
 
+	void ChangeToWorkshopMap(const std::string &workshopId)
+	{
+		EnsureWorkshopMapReady(workshopId);
+		char cmd[256];
+		snprintf(cmd, sizeof(cmd), "host_workshop_map %s\n", workshopId.c_str());
+		g_pEngine->ServerCommand(cmd);
+	}
+
 } // namespace mmu

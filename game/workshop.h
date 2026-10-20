@@ -142,6 +142,9 @@ namespace mmu
 	// The engine's record of the map and any leftover addon folder are dropped with it.
 	// Returns true if a stale entry was pruned.
 	bool EnsureWorkshopMapReady(const std::string &workshopId);
+
+	// EnsureWorkshopMapReady, then host_workshop_map.
+	void ChangeToWorkshopMap(const std::string &workshopId);
 } // namespace mmu
 
 #endif // _INCLUDE_MMU_WORKSHOP_H_

@@ -20,6 +20,7 @@ Game-agnostic helpers.
 | `utils/kv_parser.h`         | Minimal Valve KeyValues1 tokenizer/parser (`kv::LoadFile`)             |
 | `utils/str.h`               | `str::ToLower`, `str::ToLowerInPlace`, `str::Trim`, `str::StripPort`   |
 | `utils/json.h`              | `json::Escape`, `json::GetString`                                      |
+| `utils/json_doc.h`          | nlohmann/json plus field reads that can't throw                        |
 | `utils/steamid.h`           | SteamID64 <-> STEAM_0:X:Y auth id conversion                           |
 | `utils/maplist.h`           | maplist.txt line parser                                                |
 | `utils/chat_command.h`      | Say-quote strip + prefix/command/arg parser                            |
@@ -69,6 +70,12 @@ Player-facing behavior built on `sdk`.
 | `interfaces/cs2admin/admin_access.h` | `mmu::AdminAccess`, mm-cs2admin permission checks for consumers         |
 | `interfaces/cs2kz/`                  | cs2kz's public interface, vendored as is under its own AGPL-3.0 LICENSE |
 | `interfaces/sql_mm/`                 | sql_mm's public interface (GPL-3.0), vendored as is                     |
+
+### `thirdparty/`
+
+| Path                  | What                                       |
+| --------------------- | ------------------------------------------ |
+| `thirdparty/nlohmann` | nlohmann/json 3.12.0 (MIT), vendored as is |
 
 ## Usage
 

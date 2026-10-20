@@ -72,6 +72,24 @@ constexpr uint32_t FNV1a(const char *str)
 	return hash;
 }
 
+namespace schema
+{
+	inline int16_t GetOffset(const char *className, const char *fieldName)
+	{
+		return GetOffset(className, FNV1a(className), fieldName, FNV1a(fieldName));
+	}
+
+	inline int32_t FindOffset(const char *className, const char *fieldName)
+	{
+		return FindOffset(className, FNV1a(className), fieldName, FNV1a(fieldName));
+	}
+
+	inline SchemaCollectionManipulatorFn_t GetCollectionManipulator(const char *className, const char *fieldName)
+	{
+		return GetCollectionManipulator(className, FNV1a(className), fieldName, FNV1a(fieldName));
+	}
+} // namespace schema
+
 // Declares the schema class metadata for this wrapper.
 // Must appear at the top of each entity wrapper class body.
 #define DECLARE_SCHEMA_CLASS(className) \
