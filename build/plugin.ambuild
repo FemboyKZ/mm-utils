@@ -1,5 +1,5 @@
 # vim: set sts=2 ts=8 sw=2 tw=99 et ft=python:
-import os, json, re, subprocess
+import os, json, re, shutil, subprocess, sys
 from ambuild2.frontend.v2_2.cpp.builders import TargetSuffix
 
 # exec'd by each plugin's AMBuildScript once it defines additionalLibs, additionalDefines and additionalIncludes.
@@ -434,6 +434,9 @@ const char *PLUGIN_REVISION_COUNT = \"{revision_count}\";
             elif cxx.family == "clang":
                 cxx.linkflags += ["-lgcc_eh"]
             cxx.linkflags += ["-static-libstdc++"]
+            # Static libstdc++ brings STB_GNU_UNIQUE symbols, and glibc never unloads a library holding one.
+            if shutil.which("ld.lld"):
+                cxx.linkflags += ["-fuse-ld=lld", "-Wl,--no-gnu-unique"]
         elif cxx.target.platform == "windows":
             cxx.defines += ["WIN32", "_WINDOWS"]
 
@@ -480,3 +483,10 @@ MMSPlugin = MMSPluginConfig()
 MMSPlugin.detectSDKs()
 MMSPlugin.configurePluginMetadata()
 MMSPlugin.configure()
+
+if any(cxx.target.platform == "linux" for cxx in MMSPlugin.all_targets) and not shutil.which("ld.lld"):
+    if os.environ.get("CI"):
+        # AMBuild reports an exception from here but still exits 0.
+        print("Error: ld.lld not found. Linked without it the plugin can never be unloaded.")
+        sys.exit(1)
+    print("Warning: ld.lld not found. Linked without it the plugin can never be unloaded, meta unload keeps it in memory.")

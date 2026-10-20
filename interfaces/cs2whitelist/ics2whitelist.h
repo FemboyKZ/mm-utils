@@ -1,9 +1,11 @@
 #ifndef _INCLUDE_ICS2WHITELIST_H_
 #define _INCLUDE_ICS2WHITELIST_H_
 
+#include <ISmmPlugin.h>
+
 #include <cstdint>
 
-#define CS2WHITELIST_INTERFACE "ICS2Whitelist002"
+#define CS2WHITELIST_INTERFACE "ICS2Whitelist003"
 
 // Kick-forward listener interface.
 // Other mm:s plugins implement this and register via ICS2Whitelist::AddListener.
@@ -80,7 +82,8 @@ public:
 
 	// Kick-forward listener registration
 
-	virtual void AddListener(ICS2WhitelistListener *listener) = 0;
+	// `owner` is the registering plugin. Its listeners are dropped when it unloads.
+	virtual void AddListener(PluginId owner, ICS2WhitelistListener *listener) = 0;
 	virtual void RemoveListener(ICS2WhitelistListener *listener) = 0;
 };
 

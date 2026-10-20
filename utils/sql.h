@@ -69,6 +69,10 @@ namespace mmu
 			// Destroy the connection and latch shutdown so in-flight callbacks bail.
 			void Shutdown();
 
+			// Call from OnPluginLoad and OnPluginUnload. An unloaded sql_mm took the connection and its code along:
+			// nothing calls into it, waiting queries get cb(nullptr), and once it is back RunFrame connects again.
+			void Refresh();
+
 			bool IsConnected() const
 			{
 				return m_connected;
@@ -156,6 +160,9 @@ namespace mmu
 			bool m_connecting = false;
 			bool m_initialized = false;
 			bool m_shuttingDown = false;
+			// sql_mm unloaded under us, and whether there was a connection to restore.
+			bool m_lost = false;
+			bool m_reconnect = false;
 		};
 
 		// SQL fragment matching a Steam authid by suffix in both MySQL and SQLite:

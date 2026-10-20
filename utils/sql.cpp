@@ -7,6 +7,7 @@
 
 #include <ISmmPlugin.h>
 
+#include <algorithm>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
@@ -224,6 +225,51 @@ namespace mmu
 			m_mysql = nullptr;
 			m_sqlite = nullptr;
 			m_sql = nullptr;
+		}
+
+		void Connection::Refresh()
+		{
+			if (m_shuttingDown || !g_SMAPI)
+			{
+				return;
+			}
+			ISQLInterface *sql = static_cast<ISQLInterface *>(g_SMAPI->MetaFactory(SQLMM_INTERFACE, nullptr, nullptr));
+			if (m_lost)
+			{
+				if (sql && Init(m_type))
+				{
+					m_lost = false;
+					if (m_reconnect)
+					{
+						MMU_LOG_INFO("sql_mm is back, reconnecting.\n");
+						m_retryAt = (std::max)(m_frameTime, 1e-9);
+					}
+				}
+				return;
+			}
+			if (!m_sql || sql == m_sql)
+			{
+				return;
+			}
+
+			MMU_LOG_WARN("sql_mm unloaded, the database is offline until it is back.\n");
+			m_lost = true;
+			m_reconnect = m_conn || m_connecting;
+			m_conn = nullptr;
+			m_sql = nullptr;
+			m_mysql = nullptr;
+			m_sqlite = nullptr;
+			m_initialized = false;
+			m_connected = false;
+			m_connecting = false;
+			m_retryAt = 0.0;
+			// sql_mm deleted them unanswered.
+			std::deque<PendingQuery> pending;
+			pending.swap(m_pending);
+			for (PendingQuery &query : pending)
+			{
+				query.cb(nullptr);
+			}
 		}
 
 		void Connection::Query(const char *query, std::function<void(ISQLQuery *)> cb)
