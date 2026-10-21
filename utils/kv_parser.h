@@ -188,7 +188,8 @@ namespace kv
 
 	typedef void (*Handler)(const std::string &section, const std::string &key, const std::string &value, void *userdata);
 
-	// `nested` is for its own recursion. False if the file ended before the closing brace.
+	// `nested` skips the check for text after the root's brace,
+	// for its own recursion and LoadFile's loop over roots. False if the file ended before the closing brace.
 	inline bool ParseSection(std::istream &in, const std::string &sectionName, Handler handler, void *userdata, bool nested = false)
 	{
 		Token tok = NextToken(in);
@@ -242,8 +243,9 @@ namespace kv
 		}
 	}
 
-	// Open `path` and parse its top-level "Root { ... }" body with `handler`.
-	// Returns false if the file is missing or isn't a braced root section.
+	// Open `path` and parse each top-level "Root { ... }" body with `handler`.
+	// Every root is read, as Valve's KeyValues chains them as peers.
+	// Returns false if the file is missing or doesn't start with a braced root section.
 	inline bool LoadFile(const std::string &path, Handler handler, void *userdata, bool escapes = false)
 	{
 		std::ifstream file(path);
@@ -252,18 +254,28 @@ namespace kv
 			return false;
 		}
 		Escapes(file) = escapes;
-		Token root = NextToken(file);
-		if (root.kind != TokenType::String)
+		for (bool first = true;; first = false)
 		{
-			return false;
+			Token root = NextToken(file);
+			const int line = LineNumber(file);
+			if (!first && root.kind == TokenType::EndOfFile)
+			{
+				return true;
+			}
+			if (root.kind != TokenType::String || NextToken(file).kind != TokenType::OpenBrace)
+			{
+				if (!first)
+				{
+					MMU_LOG_WARN("Config: line %d is not a \"Root\" { } section, the rest of the file is not read.\n", line);
+				}
+				return !first;
+			}
+			// Nested, so ParseSection doesn't read past the brace to warn about the next root
+			if (!ParseSection(file, root.value, handler, userdata, true))
+			{
+				return true;
+			}
 		}
-		Token brace = NextToken(file);
-		if (brace.kind != TokenType::OpenBrace)
-		{
-			return false;
-		}
-		ParseSection(file, root.value, handler, userdata);
-		return true;
 	}
 
 	// A whole file as a tree, for nesting and repeated keys.
