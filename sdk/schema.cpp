@@ -57,7 +57,7 @@ static bool InitSchemaFieldsForClass(const char *className, uint32_t classKey)
 	// so a fully-resolved-but-field-absent lookup won't re-scan every call.
 	auto &classMap = g_schemaCache[classKey];
 
-	for (int i = 0; i < pClassInfo->m_nFieldCount; i++)
+	for (int i = 0; i < pClassInfo->m_nNumFields; i++)
 	{
 		auto &field = pClassInfo->m_pFields[i];
 		SchemaCollectionManipulatorFn_t manipulator = nullptr;
@@ -66,7 +66,7 @@ static bool InitSchemaFieldsForClass(const char *className, uint32_t classKey)
 		{
 			manipulator = static_cast<CSchemaType_Atomic_CollectionOfT *>(type)->m_pfnManipulator;
 		}
-		classMap[FNV1a(field.m_pszName)] = {field.m_nSingleInheritanceOffset, manipulator};
+		classMap[FNV1a(field.m_pName)] = {field.m_nSingleInheritanceOffset, manipulator};
 	}
 	return true;
 }
