@@ -18,10 +18,10 @@ namespace mmu
 		bool isWorkshop = false;
 	};
 
-	// "kz_grotto (T3, Linear)" -> "kz_grotto".
+	// "kz_grotto (T3, Linear)" or "kz_unmake Tier 7 (Death)" -> first word, map names have no spaces.
 	inline std::string StripMapAnnotation(const std::string &displayName)
 	{
-		size_t pos = displayName.find(" (");
+		size_t pos = displayName.find_first_of(" \t");
 		if (pos != std::string::npos)
 		{
 			return displayName.substr(0, pos);
