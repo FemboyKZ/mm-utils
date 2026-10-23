@@ -1,12 +1,18 @@
 #ifndef _INCLUDE_ICS2RTV_H_
 #define _INCLUDE_ICS2RTV_H_
 
+#include <ISmmPlugin.h>
+
 #include <cstdint>
+#include <functional>
 
 // Other Metamod plugins can acquire this interface via:
 //   ICS2RTV *rtv = (ICS2RTV *)g_SMAPI->MetaFactory(
 //       CS2RTV_INTERFACE, nullptr, nullptr);
-#define CS2RTV_INTERFACE "ICS2RTV002"
+#define CS2RTV_INTERFACE "ICS2RTV003"
+
+// Workshop id, or a stock map's name.
+using RTVMapPickFn = std::function<void(int slot, const char *map)>;
 
 // Public interface for CS2RockTheVote.
 // Provides vote/map-change status and access to the loaded map list. Read-only apart from CancelVote.
@@ -67,6 +73,11 @@ public:
 	// Cancels a running vote or a scheduled map change, for a caller whose own map change outranks it.
 	// The map keeps running and players are told. Does nothing when neither is under way.
 	virtual void CancelVote() = 0;
+
+	// !nominate's table. False without mm-cs2menus or maps. Call CloseMapMenus from your Unload().
+	virtual bool ShowMapMenu(PluginId owner, int slot, const char *title, bool push, RTVMapPickFn onPick) = 0;
+	// A menu still open then picks nothing.
+	virtual void CloseMapMenus(PluginId owner) = 0;
 };
 
 #endif // _INCLUDE_ICS2RTV_H_
