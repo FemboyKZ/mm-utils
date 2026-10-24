@@ -21,7 +21,7 @@ static constexpr RTVForwardHandle kInvalidRTVForwardHandle = 0;
 
 // Forward callback types.
 
-// Fired when a map vote is about to start.
+// Fired when a map vote is about to start, and before the match-end change that skips one.
 // isRTV is true for !rtv-triggered votes,
 // false for end-of-map / nextmap votes.
 // Blockable: return true to prevent the vote from starting.

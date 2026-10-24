@@ -9,7 +9,7 @@
 // Other Metamod plugins can acquire this interface via:
 //   ICS2RTV *rtv = (ICS2RTV *)g_SMAPI->MetaFactory(
 //       CS2RTV_INTERFACE, nullptr, nullptr);
-#define CS2RTV_INTERFACE "ICS2RTV003"
+#define CS2RTV_INTERFACE "ICS2RTV004"
 
 // Workshop id, or a stock map's name.
 using RTVMapPickFn = std::function<void(int slot, const char *map)>;
@@ -78,6 +78,11 @@ public:
 	virtual bool ShowMapMenu(PluginId owner, int slot, const char *title, bool push, RTVMapPickFn onPick) = 0;
 	// A menu still open then picks nothing.
 	virtual void CloseMapMenus(PluginId owner) = 0;
+
+	// As mm_reloadmaps, which cancels a running vote unless the list is the CS2KZ API pool.
+	virtual void ReloadMaps() = 0;
+	// Seconds, 0 or less for no download.
+	virtual int GetWorkshopDownloadTimeout() = 0;
 };
 
 #endif // _INCLUDE_ICS2RTV_H_
