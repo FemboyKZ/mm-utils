@@ -7,6 +7,7 @@
 #include <ISmmPlugin.h>
 #include <engine2/isource2server.h>
 #include <engine2/ivengineserver2.h>
+#include <playerslot.h>
 
 extern IVEngineServer *g_pEngine;
 extern IServerGameDLL *g_pServerGameDLL;
@@ -23,13 +24,13 @@ extern ISmmPlugin *g_PLAPI;
 extern PluginId g_PLID;
 
 // Client slots are 0..MAXPLAYERS-1.
-#define MAXPLAYERS 64
+#define MAXPLAYERS ABSOLUTE_PLAYER_LIMIT
 
 namespace mmu
 {
 	inline bool ValidSlot(int slot)
 	{
-		return slot >= 0 && slot < MAXPLAYERS;
+		return CPlayerSlot(slot).IsValid();
 	}
 } // namespace mmu
 

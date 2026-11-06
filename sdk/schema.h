@@ -13,34 +13,37 @@ namespace schema
 	int32_t FindOffset(const char *className, uint32_t classKey, const char *fieldName, uint32_t fieldKey);
 
 	// nullptr unless the field is a CUtlVector-like collection.
-	SchemaCollectionManipulatorFn_t GetCollectionManipulator(const char *className, uint32_t classKey, const char *fieldName, uint32_t fieldKey);
+	const CSchemaType_Atomic_CollectionOfT *GetCollectionType(const char *className, uint32_t classKey, const char *fieldName, uint32_t fieldKey);
 
-	// Grows through the game's manipulator, so new elements are constructed the way the game would.
-	// Nothing here notifies clients.
+	// Goes through the game's own operations on the collection, so new elements are constructed the way the game would.
+	// Nothing here notifies clients beyond what those operations report themselves.
 	template<typename T>
 	class Collection
 	{
 	public:
-		Collection(void *field, SchemaCollectionManipulatorFn_t manipulator) : m_field(field), m_manipulator(manipulator) {}
+		Collection(void *field, const CSchemaType_Atomic_CollectionOfT *type) : m_field(field), m_type(type) {}
 
 		bool IsValid() const
 		{
-			return m_field && m_manipulator;
+			return m_field && m_type;
 		}
 
 		int Count() const
 		{
-			if (!IsValid())
-			{
-				return 0;
-			}
-			return static_cast<int>(reinterpret_cast<intptr_t>(m_manipulator(SCHEMA_COLLECTION_MANIPULATOR_ACTION_GET_COUNT, m_field, 0, 0)));
+			return IsValid() ? m_type->GetCount(m_field) : 0;
 		}
 
 		// Unchecked, and every call goes into the game. Hoist Count() out of loops.
-		T *At(int index) const
+		const T *Element(int index) const
 		{
-			return static_cast<T *>(m_manipulator(SCHEMA_COLLECTION_MANIPULATOR_ACTION_GET_ELEMENT, m_field, index, 0));
+			return static_cast<const T *>(m_type->GetElement(m_field, index));
+		}
+
+		// For an element about to change. On a networked collection the game reports that change itself.
+		// Unchecked like Element.
+		T *ElementForModify(int index) const
+		{
+			return static_cast<T *>(m_type->GetElementForModify(m_field, index));
 		}
 
 		T *Append() const
@@ -50,13 +53,13 @@ namespace schema
 				return nullptr;
 			}
 			const int count = Count();
-			m_manipulator(SCHEMA_COLLECTION_MANIPULATOR_ACTION_SET_COUNT, m_field, count + 1, 0);
-			return Count() == count + 1 ? At(count) : nullptr;
+			m_type->SetCount(m_field, count + 1);
+			return Count() == count + 1 ? ElementForModify(count) : nullptr;
 		}
 
 	private:
 		void *m_field;
-		SchemaCollectionManipulatorFn_t m_manipulator;
+		const CSchemaType_Atomic_CollectionOfT *m_type;
 	};
 } // namespace schema
 
@@ -84,9 +87,9 @@ namespace schema
 		return FindOffset(className, FNV1a(className), fieldName, FNV1a(fieldName));
 	}
 
-	inline SchemaCollectionManipulatorFn_t GetCollectionManipulator(const char *className, const char *fieldName)
+	inline const CSchemaType_Atomic_CollectionOfT *GetCollectionType(const char *className, const char *fieldName)
 	{
-		return GetCollectionManipulator(className, FNV1a(className), fieldName, FNV1a(fieldName));
+		return GetCollectionType(className, FNV1a(className), fieldName, FNV1a(fieldName));
 	}
 } // namespace schema
 
@@ -166,7 +169,7 @@ namespace schema
 			return schema::Collection<type>(nullptr, nullptr); \
 		} \
 		void *field = reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(this) + offset); \
-		return schema::Collection<type>(field, schema::GetCollectionManipulator(m_className, m_classNameHash, #fieldName, fieldHash)); \
+		return schema::Collection<type>(field, schema::GetCollectionType(m_className, m_classNameHash, #fieldName, fieldHash)); \
 	}
 
 #endif // _INCLUDE_MMU_SCHEMA_H_

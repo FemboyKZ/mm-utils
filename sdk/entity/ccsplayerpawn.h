@@ -7,7 +7,7 @@
 #include "sdk/entity/in_buttons.h"
 
 #include <mathlib/vector.h>
-#include <tier0/utlvector.h>
+#include <networksystem/networkvar.h>
 
 #include <cstdint>
 
@@ -66,7 +66,7 @@ class CPlayer_WeaponServices
 public:
 	DECLARE_SCHEMA_CLASS(CPlayer_WeaponServices)
 
-	SCHEMA_FIELD(CUtlVector<CEntityHandle>, m_hMyWeapons)
+	SCHEMA_FIELD(CNetworkUtlVectorBase<CEntityHandle>, m_hMyWeapons)
 
 	// Like a drop key press.
 	void DropWeapon(CEntityInstance *weapon)

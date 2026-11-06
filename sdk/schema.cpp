@@ -12,7 +12,7 @@ namespace
 	struct FieldInfo
 	{
 		int32_t offset;
-		SchemaCollectionManipulatorFn_t manipulator;
+		const CSchemaType_Atomic_CollectionOfT *collection;
 	};
 } // namespace
 
@@ -60,13 +60,13 @@ static bool InitSchemaFieldsForClass(const char *className, uint32_t classKey)
 	for (int i = 0; i < pClassInfo->m_nNumFields; i++)
 	{
 		auto &field = pClassInfo->m_pFields[i];
-		SchemaCollectionManipulatorFn_t manipulator = nullptr;
+		const CSchemaType_Atomic_CollectionOfT *collection = nullptr;
 		CSchemaType *type = field.m_pType;
 		if (type && type->m_eTypeCategory == SCHEMA_TYPE_ATOMIC && type->m_eAtomicCategory == SCHEMA_ATOMIC_COLLECTION_OF_T)
 		{
-			manipulator = static_cast<CSchemaType_Atomic_CollectionOfT *>(type)->m_pfnManipulator;
+			collection = static_cast<CSchemaType_Atomic_CollectionOfT *>(type);
 		}
-		classMap[FNV1a(field.m_pName)] = {field.m_nSingleInheritanceOffset, manipulator};
+		classMap[FNV1a(field.m_pName)] = {field.m_nSingleInheritanceOffset, collection};
 	}
 	return true;
 }
@@ -110,8 +110,8 @@ int32_t schema::FindOffset(const char *className, uint32_t classKey, const char 
 	return field ? field->offset : -1;
 }
 
-SchemaCollectionManipulatorFn_t schema::GetCollectionManipulator(const char *className, uint32_t classKey, const char *fieldName, uint32_t fieldKey)
+const CSchemaType_Atomic_CollectionOfT *schema::GetCollectionType(const char *className, uint32_t classKey, const char *fieldName, uint32_t fieldKey)
 {
 	const FieldInfo *field = FindField(className, classKey, fieldName, fieldKey);
-	return field ? field->manipulator : nullptr;
+	return field ? field->collection : nullptr;
 }
