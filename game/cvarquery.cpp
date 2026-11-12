@@ -127,7 +127,7 @@ namespace
 
 		CReliableSingleUserRecipientFilter filter(slot);
 		g_pGameEventSystem->PostEventAbstract(-1, false, &filter, pNetMsg, pData, 0);
-		g_pNetworkMessages->DeallocateNetMessageAbstract(pNetMsg, pData);
+		delete pData; // CS2 14197 removed INetworkMessages::DeallocateNetMessageAbstract; a net message frees itself
 
 		return true;
 	}

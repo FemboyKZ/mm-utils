@@ -91,7 +91,7 @@ namespace mmu
 		pTextMsg->add_param(text);
 
 		g_pGameEventSystem->PostEventAbstract(-1, false, &live, pNetMsg, pData, 0);
-		g_pNetworkMessages->DeallocateNetMessageAbstract(pNetMsg, pData);
+		delete pData; // CS2 14197 removed INetworkMessages::DeallocateNetMessageAbstract; a net message frees itself
 	}
 
 	void SendSayText2ToFilter(IRecipientFilter *filter, int entIndex, const char *text)
@@ -120,7 +120,7 @@ namespace mmu
 		pSayText2->set_chat(false);
 
 		g_pGameEventSystem->PostEventAbstract(-1, false, &live, pNetMsg, pData, 0);
-		g_pNetworkMessages->DeallocateNetMessageAbstract(pNetMsg, pData);
+		delete pData; // CS2 14197 removed INetworkMessages::DeallocateNetMessageAbstract; a net message frees itself
 	}
 
 	void SendChatToSlot(int slot, const char *text)
