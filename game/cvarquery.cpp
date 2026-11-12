@@ -109,7 +109,7 @@ namespace
 			return false;
 		}
 
-		INetworkMessageInternal *pNetMsg = g_pNetworkMessages->FindNetworkMessagePartial("CSVCMsg_GetCvarValue");
+		NetMessageInfo_t *pNetMsg = g_pNetworkMessages->FindNetworkMessagePartial("CSVCMsg_GetCvarValue");
 		if (!pNetMsg)
 		{
 			return false;
@@ -127,7 +127,7 @@ namespace
 
 		CReliableSingleUserRecipientFilter filter(slot);
 		g_pGameEventSystem->PostEventAbstract(-1, false, &filter, pNetMsg, pData, 0);
-		g_pNetworkMessages->DeallocateNetMessageAbstract(pNetMsg, pData);
+		delete pData;
 
 		return true;
 	}

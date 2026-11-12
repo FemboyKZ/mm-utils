@@ -34,9 +34,9 @@ namespace mmu
 	}
 
 	// Cache the TextMsg network message pointer (lazy init)
-	static INetworkMessageInternal *GetTextMsgMessage()
+	static NetMessageInfo_t *GetTextMsgMessage()
 	{
-		static INetworkMessageInternal *s_pTextMsg = nullptr;
+		static NetMessageInfo_t *s_pTextMsg = nullptr;
 		if (!s_pTextMsg && g_pNetworkMessages)
 		{
 			s_pTextMsg = g_pNetworkMessages->FindNetworkMessagePartial("TextMsg");
@@ -45,9 +45,9 @@ namespace mmu
 	}
 
 	// Cache the SayText2 network message pointer (lazy init)
-	static INetworkMessageInternal *GetSayText2Message()
+	static NetMessageInfo_t *GetSayText2Message()
 	{
-		static INetworkMessageInternal *s_pSayText2 = nullptr;
+		static NetMessageInfo_t *s_pSayText2 = nullptr;
 		if (!s_pSayText2 && g_pNetworkMessages)
 		{
 			s_pSayText2 = g_pNetworkMessages->FindNetworkMessagePartial("SayText2");
@@ -70,7 +70,7 @@ namespace mmu
 
 	void SendChatToFilter(IRecipientFilter *filter, const char *text)
 	{
-		INetworkMessageInternal *pNetMsg = GetTextMsgMessage();
+		NetMessageInfo_t *pNetMsg = GetTextMsgMessage();
 		if (!pNetMsg || !g_pGameEventSystem)
 		{
 			return;
@@ -91,12 +91,12 @@ namespace mmu
 		pTextMsg->add_param(text);
 
 		g_pGameEventSystem->PostEventAbstract(-1, false, &live, pNetMsg, pData, 0);
-		g_pNetworkMessages->DeallocateNetMessageAbstract(pNetMsg, pData);
+		delete pData;
 	}
 
 	void SendSayText2ToFilter(IRecipientFilter *filter, int entIndex, const char *text)
 	{
-		INetworkMessageInternal *pNetMsg = GetSayText2Message();
+		NetMessageInfo_t *pNetMsg = GetSayText2Message();
 		if (!pNetMsg || !g_pGameEventSystem)
 		{
 			return;
@@ -120,7 +120,7 @@ namespace mmu
 		pSayText2->set_chat(false);
 
 		g_pGameEventSystem->PostEventAbstract(-1, false, &live, pNetMsg, pData, 0);
-		g_pNetworkMessages->DeallocateNetMessageAbstract(pNetMsg, pData);
+		delete pData;
 	}
 
 	void SendChatToSlot(int slot, const char *text)
